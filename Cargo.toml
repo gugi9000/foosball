@@ -1,0 +1,7 @@
+[package]
+name = "foosball-rating"
+version = "0.1.0"
+authors = ["Bjarke Sørensen <bs@wasd.dk>"]
+
+[dependencies]
+pencil = "*"
