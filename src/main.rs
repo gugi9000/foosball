@@ -23,24 +23,14 @@ fn page_not_found(_: HTTPError) -> PencilResult {
     Ok(response)
 }
 
-struct Player {
-    rating: String,
-    name: String,
-    kampe: u32,
-    vundet: u32,
-    tabt: u32
-}
-
-impl ToJson for Player {
-    fn to_json(&self) -> Json {
-        let mut m: BTreeMap<String, Json> = BTreeMap::new();
-        m.insert("rating".to_string(), self.rating.to_json());
-        m.insert("name".to_string(), self.name.to_json());
-        m.insert("kampe".to_string(), self.kampe.to_json());
-        m.insert("vundet".to_string(), self.vundet.to_json());
-        m.insert("tabt".to_string(), self.tabt.to_json());
-        m.to_json()
-    }
+fn player(name: &str, rating: &Rating, kampe: u32, vundet: u32, tabt: u32) -> Json {
+    let mut m: BTreeMap<String, Json> = BTreeMap::new();
+    m.insert("rating".to_string(), rating.to_string().to_json());
+    m.insert("name".to_string(), name.to_json());
+    m.insert("kampe".to_string(), kampe.to_json());
+    m.insert("vundet".to_string(), vundet.to_json());
+    m.insert("tabt".to_string(), tabt.to_json());
+    m.to_json()
 }
 
 use bbt::{Rater, Rating};
@@ -50,10 +40,8 @@ fn rating(request: &mut Request) -> PencilResult {
     let p1 = Rating::new(1500.0, 1500.0/3.0);
     let p2 = Rating::new(1500.0, 1500.0/3.0);
     let mut context = BTreeMap::new();
-    let (p1, p2) = rater.duel(p1.clone(), p2.clone(), bbt::Outcome::Loss);
-    let p1 = Player{rating: p1.to_string(),kampe, name, tabt, vundet};
-    let p2 = Player{rating: p1.to_string(),kampe, name, tabt, vundet};
-    context.insert("ps".to_string(), [p1.to_json(), p2.to_json()].to_json());
+    let (p1, p2) = rater.duel(p1, p2, bbt::Outcome::Loss);
+    context.insert("ps".to_string(), [player("Hans", &p1, 1, 0, 1), player("Bo-Erik", &p2, 1, 1, 0)].to_json());
     context.insert("heading".to_string(), "Top 4".to_json());
     context.insert("body".to_string(), "Alle ratings".to_json());
     request.app.render_template("index.html", &context)
