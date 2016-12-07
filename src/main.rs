@@ -2,6 +2,7 @@ extern crate pencil;
 extern crate bbt;
 extern crate rustc_serialize;
 extern crate env_logger;
+extern crate rand;
 
 use pencil::Pencil;
 use pencil::{Request, PencilResult, Response};
@@ -9,6 +10,7 @@ use pencil::{Request, PencilResult, Response};
 use pencil::HTTPError;
 use std::collections::BTreeMap;
 use rustc_serialize::json::{Json, ToJson};
+use rand::random;
 
 fn index_template(request: &mut Request) -> PencilResult {
     let mut context = BTreeMap::new();
@@ -23,6 +25,7 @@ fn page_not_found(_: HTTPError) -> PencilResult {
     Ok(response)
 }
 
+#[derive(Debug)]
 struct Player {
     name: String,
     rating: Rating,
@@ -44,23 +47,22 @@ impl Player {
             tabte: 0
         }
     }
-    fn duel(&mut self, rater: &Rater, o: &mut Player, won: bool) {
+    fn duel(&mut self, rater: &Rater, o: Rating, won: bool) {
         let a = replace(&mut self.rating, Default::default());
-        let b = replace(&mut o.rating, Default::default());
 
-        let (a, b) = rater.duel(a, b, if won{Win}else{Loss});
+        let (a, _) = rater.duel(a, o, if won{Win}else{Loss});
         self.rating = a;
-        o.rating = b;
 
         self.kampe += 1;
-        o.kampe += 1;
         if won{
             self.vundne += 1;
-            o.tabte += 1;
         }else{
             self.tabte += 1;
-            o.vundne += 1;
         }
+    }
+    fn duel_mut(&mut self, rater: &Rater, o: &mut Player, won: bool) {
+        self.duel(rater, o.rating.clone(), won);
+        o.duel(rater, self.rating.clone(), won);
     }
 }
 
@@ -81,22 +83,43 @@ macro_rules! js_arr {
         [$($v.to_json()),+].to_json()
     );
 }
+macro_rules! players {
+    ($($v:expr),+) => (
+        vec![$(Player::new($v)),+]
+    );
+}
 
 use bbt::{Rater, Rating};
 
+fn get_rating(rating: &Rating) -> f64 {
+    rating.mu() - 3. * rating.sigma()
+}
+
+use std::cmp::Ordering::{Greater, Less};
+use std::time::{Instant};
+
 fn rating(request: &mut Request) -> PencilResult {
     let rater = Rater::new(1500.0/6.0);
-    let mut p1 = Player::new("Biver");
-    let mut p2 = Player::new("Bo-Erik");
-    let mut p3 = Player::new("Qrizdan");
+    let mut ps = players!["Biver", "Bo-Bent", "Niels-Erik", "Bente-Magrethe", "Ib", "Josefine", "Mads", "Bjarke", "Lucas", "Niels", "Jacob", "Troels", "Frodo", "Niqhlas"];
 
     let mut context = BTreeMap::new();
-    p3.duel(&rater, &mut p2, true);
-    for _ in 0..15{
-        p1.duel(&rater, &mut p2, false);
-        p1.duel(&rater, &mut p2, true);
+    let now = Instant::now();
+    for _ in 0..500{
+        for i in 0..ps.len() {
+            for j in (0..ps.len()).filter(|&j| j != i) {
+                let r = ps[j].rating.clone();
+                ps[i].duel(&rater, r, random());
+                let r = ps[i].rating.clone();
+                ps[j].duel(&rater, r, random());
+            }
+        }
     }
-    context.insert("ps".to_string(), js_arr![p1, p2, p3]);
+
+    let dur = Instant::now() - now;
+    println!("Time taken: {}.{:09}s", dur.as_secs(), dur.subsec_nanos());
+
+    ps.sort_by(|a, b| if get_rating(&b.rating) < get_rating(&a.rating){Less}else{Greater});
+    context.insert("ps".to_string(), ps.to_json());
     context.insert("heading".to_string(), "Top 4".to_json());
     context.insert("body".to_string(), "Alle ratings".to_json());
     request.app.render_template("index.html", &context)
@@ -109,8 +132,8 @@ fn main() {
     app.get("/rating", "flest heste", rating);
     app.enable_static_file_handling();
     app.httperrorhandler(404, page_not_found);
-    app.set_debug(true);
-    app.set_log_level();
-    env_logger::init().unwrap();
+    // app.set_debug(true);
+    // app.set_log_level();
+    // env_logger::init().unwrap();
     app.run("0.0.0.0:5000");
 }
