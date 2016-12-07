@@ -24,15 +24,21 @@ fn page_not_found(_: HTTPError) -> PencilResult {
 }
 
 struct Player {
-    new: String,
-    old: String,
+    rating: String,
+    name: String,
+    kampe: u32,
+    vundet: u32,
+    tabt: u32
 }
 
 impl ToJson for Player {
     fn to_json(&self) -> Json {
         let mut m: BTreeMap<String, Json> = BTreeMap::new();
-        m.insert("new".to_string(), self.new.to_json());
-        m.insert("old".to_string(), self.old.to_json());
+        m.insert("rating".to_string(), self.rating.to_json());
+        m.insert("name".to_string(), self.name.to_json());
+        m.insert("kampe".to_string(), self.kampe.to_json());
+        m.insert("vundet".to_string(), self.vundet.to_json());
+        m.insert("tabt".to_string(), self.tabt.to_json());
         m.to_json()
     }
 }
@@ -44,9 +50,9 @@ fn rating(request: &mut Request) -> PencilResult {
     let p1 = Rating::new(1500.0, 1500.0/3.0);
     let p2 = Rating::new(1500.0, 1500.0/3.0);
     let mut context = BTreeMap::new();
-    let (op1, op2) = rater.duel(p1.clone(), p2.clone(), bbt::Outcome::Loss);
-    let p1 = Player{new: p1.to_string(), old: op1.to_string()};
-    let p2 = Player{new: p2.to_string(), old: op2.to_string()};
+    let (p1, p2) = rater.duel(p1.clone(), p2.clone(), bbt::Outcome::Loss);
+    let p1 = Player{rating: p1.to_string(),kampe, name, tabt, vundet};
+    let p2 = Player{rating: p1.to_string(),kampe, name, tabt, vundet};
     context.insert("ps".to_string(), [p1.to_json(), p2.to_json()].to_json());
     context.insert("heading".to_string(), "Top 4".to_json());
     context.insert("body".to_string(), "Alle ratings".to_json());
