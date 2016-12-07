@@ -73,6 +73,7 @@
               </ul>
             </div>
             <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+                    <!--
               <h1 class="page-header">{{heading}}</h1>
 
               <div class="row placeholders">
@@ -97,6 +98,8 @@
                   <span class="text-muted">1500/0/0</span>
                 </div>
               </div>
+                    -->
+
 
               <h2 class="sub-header">{{body}}</h2>
               <div class="table-responsive">
@@ -105,61 +108,21 @@
                     <tr>
                       <th>Rating</th>
                       <th>Spiller</th>
-                      <th>Kampe</th>
-                      <th>Vundne</th>
-                      <th>Tabte</th>
+                      <th>Før kamp</th>
+                      <th>Foo</th>
+                      <th>Bar</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>1933</td>
-                      <td>Lorem</td>
-                      <td>66</td>
-                      <td>64</td>
-                      <td>2</td>
-                    </tr>
-                    <tr>
-                      <td>1877</td>
-                      <td>Putin</td>
-                      <td>99</td>
-                      <td>74</td>
-                      <td>25</td>
-                    </tr>
-                    <tr>
-                      <td>1812</td>
-                      <td>Obama</td>
-                      <td>25</td>
-                      <td>23</td>
-                      <td>2</td>
-                    </tr>
-                    <tr>
-                      <td>1500</td>
-                      <td>Broyles</td>
-                      <td>0</td>
-                      <td>0</td>
-                      <td>0</td>
-                    </tr>
-                    <tr>
-                      <td>1500</td>
-                      <td>dapibus</td>
-                      <td>0</td>
-                      <td>0</td>
-                      <td>0</td>
-                    </tr>
-                    <tr>
-                      <td>1500</td>
-                      <td>Nulla</td>
-                      <td>0</td>
-                      <td>0</td>
-                      <td>0</td>
-                    </tr>
-                    <tr>
-                      <td>1500</td>
-                      <td>nibh</td>
-                      <td>0</td>
-                      <td>0</td>
-                      <td>0</td>
-                    </tr>
+                    {{#each ps}}
+                      <tr>
+                        <td>{{@index}}</td>
+                        <td>Lorem</td>
+                        <td>{{ps.[0]}}</td>
+                        <td>{{ps.[1]}}</td>
+                        <td>{{@first}}</td>
+                      </tr>
+                    {{/each}}
                   </tbody>
                 </table>
               </div>

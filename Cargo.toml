@@ -5,3 +5,6 @@ authors = ["Bjarke Sørensen <bs@wasd.dk>"]
 
 [dependencies]
 pencil = "*"
+bbt = "0.1.0"
+rustc-serialize = "0.3"
+env_logger = "*"
