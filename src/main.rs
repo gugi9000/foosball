@@ -12,9 +12,10 @@ use pencil::{Request, PencilResult, Response};
 use pencil::HTTPError;
 use std::collections::BTreeMap;
 use rustc_serialize::json::{Json, ToJson};
-use rand::random;
-use time::Timespec;
+//use time::Timespec;
 use rusqlite::Connection;
+
+const BETA:f64 = 5000.0;
 
 #[derive(Debug)]
 struct SqlPlayer {
@@ -66,7 +67,7 @@ impl Player {
     fn new<S: ToString>(name: S) -> Self{
         Player{
             name: name.to_string(),
-            rating: Rating::new(1500.0, 1500.0/3.0),
+            rating: Rating::new(BETA, BETA/3.0),
             kampe: 0,
             vundne: 0,
             tabte: 0
@@ -87,14 +88,15 @@ impl Player {
     }
     fn duel_mut(&mut self, rater: &Rater, o: &mut Player, won: bool) {
         self.duel(rater, o.rating.clone(), won);
-        o.duel(rater, self.rating.clone(), won);
+        o.duel(rater, self.rating.clone(), !won);
     }
 }
 
 impl ToJson for Player {
     fn to_json(&self) -> Json {
         let mut m: BTreeMap<String, Json> = BTreeMap::new();
-        m.insert("rating".to_string(), self.rating.to_string().to_json());
+        m.insert("rating".to_string(), format!("{:.3}", self.rating.mu()).to_json());
+        m.insert("sigma".to_string(), format!("{:.3}", self.rating.sigma()).to_json());
         m.insert("name".to_string(), self.name.to_json());
         m.insert("kampe".to_string(), self.kampe.to_json());
         m.insert("vundne".to_string(), self.vundne.to_json());
@@ -114,6 +116,12 @@ macro_rules! players {
     );
 }
 
+macro_rules! named_players {
+    ($($var:ident: $name:expr),+) => {
+        $(let mut $var = Player::new($name);)+
+    }
+}
+
 use bbt::{Rater, Rating};
 
 fn get_rating(rating: &Rating) -> f64 {
@@ -124,24 +132,40 @@ use std::cmp::Ordering::{Greater, Less};
 use std::time::{Instant};
 
 fn rating(request: &mut Request) -> PencilResult {
-    let rater = Rater::new(1500.0/6.0);
-    let mut ps = players!["Biver", "Bo-Bent", "Niels-Erik", "Bente-Magrethe", "Ib", "Josefine", "Mads", "Bjarke", "Lucas", "Niels", "Jacob", "Troels", "Frodo", "Niqhlas"];
+    let rater = Rater::new(BETA/6.0);
+
+    named_players![bjarke: "Bjarke", bo: "Bo", andrei: "Andrei", svend: "Svend",
+        steen: "Steen", kristian: "Kristian", jens: "Jens-Ole"];
 
     let mut context = BTreeMap::new();
     let now = Instant::now();
-    for _ in 0..500{
-        for i in 0..ps.len() {
-            for j in (0..ps.len()).filter(|&j| j != i) {
-                let r = ps[j].rating.clone();
-                ps[i].duel(&rater, r, random());
-                let r = ps[i].rating.clone();
-                ps[j].duel(&rater, r, random());
-            }
-        }
-    }
+
+    steen.duel_mut(&rater, &mut bjarke, false);
+    andrei.duel_mut(&rater, &mut svend, true);
+    kristian.duel_mut(&rater, &mut bjarke, false);
+    jens.duel_mut(&rater, &mut steen, true);
+    bo.duel_mut(&rater, &mut kristian, false);
+    svend.duel_mut(&rater, &mut jens, false);
+    bjarke.duel_mut(&rater, &mut bo, true);
+    steen.duel_mut(&rater, &mut svend, true);
+    andrei.duel_mut(&rater, &mut bo, true);
+    kristian.duel_mut(&rater, &mut svend, true);
+    jens.duel_mut(&rater, &mut andrei, false);
+    bo.duel_mut(&rater, &mut jens, true);
+    svend.duel_mut(&rater, &mut bjarke, false);
+    bjarke.duel_mut(&rater, &mut jens, true);
+    steen.duel_mut(&rater, &mut bo, true);
+    andrei.duel_mut(&rater, &mut steen, false);
+    kristian.duel_mut(&rater, &mut andrei, false);
+    jens.duel_mut(&rater, &mut kristian, true);
+    bo.duel_mut(&rater, &mut svend, true);
+    kristian.duel_mut(&rater, &mut steen, false);
+    bjarke.duel_mut(&rater, &mut andrei, true);
 
     let dur = Instant::now() - now;
     println!("Time taken: {}.{:09}s", dur.as_secs(), dur.subsec_nanos());
+
+    let mut ps = vec![bjarke, bo, andrei, svend, steen, kristian, jens];
 
     ps.sort_by(|a, b| if get_rating(&b.rating) < get_rating(&a.rating){Less}else{Greater});
     context.insert("ps".to_string(), ps.to_json());
