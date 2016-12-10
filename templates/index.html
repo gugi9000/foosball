@@ -45,9 +45,9 @@
             </div>
             <div id="navbar" class="navbar-collapse collapse">
               <ul class="nav navbar-nav navbar-right">
-                <li><a href="#">Stilling</a></li>
-                <li><a href="#">Ny kamp</a></li>
-                <li><a href="#">Spillere</a></li>
+                <li><a href="/">Stilling</a></li>
+                <li><a href="/newgame">Ny kamp</a></li>
+                <li><a href="/players">Spillere</a></li>
               </ul>
 <!--              <form class="navbar-form navbar-right">
                 <input type="text" class="form-control" placeholder="Search...">
@@ -60,56 +60,34 @@
           <div class="row">
             <div class="col-sm-3 col-md-2 sidebar">
               <ul class="nav nav-sidebar">
-                <li class="active"><a href="#">Stilling <span class="sr-only">(current)</span></a></li>
-                <li><a href="#">Kampe</a></li>
-                <li><a href="#">Analyse</a></li>
+                <li {{#if ps}}class="active"{{/if}}><a href="/">Stilling</a></li>
+                <li {{#if games}}class="active"{{/if}}><a href="/games">Kampe</a></li>
+                <!-- li><a href="#">Analyse</a></li-->
               </ul>
               <ul class="nav nav-sidebar">
-                <li><a href="">Ny kamp</a></li>
+                <li {{#if newgame}}class="active"{{/if}}><a href="/newgame">Ny kamp</a></li>
               </ul>
               <ul class="nav nav-sidebar">
-                <li><a href="">Spillere</a></li>
-                <li><a href="">Ny spiller</a></li>
+                <li {{#if players}}class="active"{{/if}}><a href="/players">Spillere</a></li>
+                <li {{#if newplayer}}class="active"{{/if}}><a href="/newplayer">Ny spiller</a></li>
               </ul>
             </div>
             <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-                    <!--
-              <h1 class="page-header">{{heading}}</h1>
-
-              <div class="row placeholders">
-                <div class="col-xs-6 col-sm-3 placeholder">
-                  <img src="/static/faces/face.jpg" width="200" height="200" class="img-responsive" alt="Lorem">
-                  <h4>Lorem</h4>
-                  <span class="text-muted">1933/64/2</span>
-                </div>
-                <div class="col-xs-6 col-sm-3 placeholder">
-                  <img src="/static/faces/putin.jpg" width="200" height="200" class="img-responsive" alt="Putin">
-                  <h4>Putin</h4>
-                  <span class="text-muted">1877/74/25</span>
-                </div>
-                <div class="col-xs-6 col-sm-3 placeholder">
-                  <img src="/static/faces/obama.jpg" width="200" height="200" class="img-responsive" alt="Obama">
-                  <h4>Obama</h4>
-                  <span class="text-muted">1812/23/2</span>
-                </div>
-                <div class="col-xs-6 col-sm-3 placeholder">
-                  <img src="/static/faces/broyles.jpg" width="200" height="200" class="img-responsive" alt="Broyles">
-                  <h4>Broyles</h4>
-                  <span class="text-muted">1500/0/0</span>
-                </div>
-              </div>
-                    -->
-
-
               <h2 class="sub-header">{{body}}</h2>
               <div class="table-responsive">
+                {{#if nykamp_fejl}}
+                <div class="alert alert-danger" role="alert">
+                  <strong>Prøv igen!</strong> {{nykamp_fejl}}
+                </div>
+                {{/if}}
+                {{#if ps}}
                 <table class="table table-striped">
                   <thead>
                     <tr>
                       <th>Placering</th>
+                      <th>Navn</th>
                       <th>Rating (µ)</th>
                       <th>Sigma</th>
-                      <th>Navn</th>
                       <th>Kampe</th>
                       <th>Vundne</th>
                       <th>Tabte</th>
@@ -117,18 +95,96 @@
                   </thead>
                   <tbody>
                     {{#each ps}}
+                      {{#if @first}}
+
+                      {{else}}
                       <tr>
                         <td>{{@index}}</td>
+                        <td>{{name}}</td>
                         <td>{{rating}}</td>
                         <td>{{sigma}}</td>
-                        <td>{{name}}</td>
                         <td>{{kampe}}</td>
                         <td>{{vundne}}</td>
                         <td>{{tabte}}</td>
                       </tr>
+                      {{/if}}
                     {{/each}}
                   </tbody>
                 </table>
+                {{/if}}
+                {{#if players}}
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>&nbsp;</th>
+                      <th>Spiller</th>
+                      <th>Oprettet</th>
+                      <th>Seneste kamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{#each players}}
+                      <tr>
+                        <td>{{id}}</td>
+                        <td>{{name}}</td>
+                        <td>-</td>
+                        <td>-</td>
+                      </tr>
+                    {{/each}}
+                  </tbody>
+                </table>
+                {{/if}}
+                {{#if games}}
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Hvid spiller</th>
+                      <th>Sort spiller</th>
+                      <th>Resultat</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{#each games}}
+                      <tr>
+                        <td>{{home}}</td>
+                        <td>{{away}}</td>
+                        <td>{{home_score}} &ndash; {{away_score}}</td>
+                      </tr>
+                    {{/each}}
+                  </tbody>
+                </table>
+                {{/if}}
+                {{#if newgame}}
+                <form method="post" action="/newgame/submit">
+                  Hvid spiller:
+                  <select class="" name="home">
+                  {{#each names}}
+                    <option value="{{id}}">{{name}}</option>
+                  {{/each}}
+                  </select>
+                  Hvid score:
+                  <input type="number" name="home_score" min="0" max="10" value="0"><br/>
+                  Sort spiller:
+                  <select class="" name="away">
+                  {{#each names}}
+                    <option value="{{id}}">{{name}}</option>
+                  {{/each}}
+                  </select>
+                  Sort score:
+                  <input type="number" name="away_score" min="0" max="10" value="0">
+                  <br/>
+                  <input type="submit" name="submit" value="Indsend">
+                <form>
+                {{/if}}
+                {{#if newplayer}}
+                <form method="post" action="/newplayer/submit">
+                  Spillerens navn:
+                  <input type="text" name="name" value="" required>
+                  <br/>
+                  <input type="submit" name="submit" value="Opret spiller">
+                <form>
+                {{/if}}
+
               </div>
             </div>
           </div>
