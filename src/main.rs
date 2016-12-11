@@ -286,5 +286,5 @@ fn main() {
     // app.set_debug(true);
     // app.set_log_level();
     // env_logger::init().unwrap();
-    app.run("0.0.0.0:5000");
+    app.run("127.0.0.1:5000");
 }
