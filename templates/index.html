@@ -48,6 +48,7 @@
                 <li><a href="/">Stilling</a></li>
                 <li><a href="/newgame">Ny kamp</a></li>
                 <li><a href="/players">Spillere</a></li>
+                <li><a href="/newplayer">Ny spiller</a></li>
               </ul>
 <!--              <form class="navbar-form navbar-right">
                 <input type="text" class="form-control" placeholder="Search...">
@@ -75,6 +76,11 @@
             <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
               <h2 class="sub-header">{{body}}</h2>
               <div class="table-responsive">
+                {{#if nyspiller_fejl}}
+                <div class="alert alert-danger" role="alert">
+                  <strong>Prøv igen!</strong> {{nyspiller_fejl}}
+                </div>
+                {{/if}}
                 {{#if nykamp_fejl}}
                 <div class="alert alert-danger" role="alert">
                   <strong>Prøv igen!</strong> {{nykamp_fejl}}
@@ -161,25 +167,37 @@
                   {{#each names}}
                     <option value="{{id}}">{{name}}</option>
                   {{/each}}
-                  </select>
+                  <br/>
+                  </select><br/>
                   Hvid score:
                   <input type="number" name="home_score" min="0" max="10" value="0"><br/>
+                  <br/>
                   Sort spiller:
                   <select class="" name="away">
                   {{#each names}}
                     <option value="{{id}}">{{name}}</option>
                   {{/each}}
-                  </select>
+                  </select><br/>
                   Sort score:
                   <input type="number" name="away_score" min="0" max="10" value="0">
+                  <br/>
+                  <br/>
+                  Kodeord:<br/>
+                  <input type="password" name="secret">
+                  <br/>
                   <br/>
                   <input type="submit" name="submit" value="Indsend">
                 <form>
                 {{/if}}
                 {{#if newplayer}}
                 <form method="post" action="/newplayer/submit">
-                  Spillerens navn:
+                        Spillerens navn:<br/>
                   <input type="text" name="name" value="" required>
+                  <br/>
+                  <br/>
+                  Kodeord:<br/>
+                  <input type="password" name="secret" required>
+                  <br/>
                   <br/>
                   <input type="submit" name="submit" value="Opret spiller">
                 <form>
