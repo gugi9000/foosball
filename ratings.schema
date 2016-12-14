@@ -1,0 +1,20 @@
+CREATE TABLE "games" (
+        `id`    INTEGER NOT NULL UNIQUE,
+        `home_id`       INTEGER NOT NULL,
+        `away_id`       INTEGER NOT NULL,
+        `home_score`    INTEGER NOT NULL,
+        `away_score`    INTEGER NOT NULL,
+        `dato`  TEXT, `ball_id` INTEGER,
+        PRIMARY KEY(`id`)
+);
+CREATE TABLE "players" (
+        `id`    INTEGER UNIQUE,
+        `name`  TEXT UNIQUE,
+        PRIMARY KEY(`id`)
+);
+CREATE TABLE "balls" (
+`id`    INTEGER UNIQUE,
+`name`  TEXT UNIQUE,
+PRIMARY KEY(`id`)
+);
+
