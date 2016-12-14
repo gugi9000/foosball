@@ -23,6 +23,7 @@ struct PlayedGame {
     away: String,
     home_score: i32,
     away_score: i32,
+    ball: i32,
 }
 
 impl ToJson for PlayedGame {
@@ -32,6 +33,7 @@ impl ToJson for PlayedGame {
         m.insert("away".to_string(), self.away.to_json());
         m.insert("home_score".to_string(), self.home_score.to_json());
         m.insert("away_score".to_string(), self.away_score.to_json());
+        m.insert("ball".to_string(), self.ball.to_json());
         m.to_json()
     }
 }
@@ -57,9 +59,22 @@ fn newgame_con() -> BTreeMap<String, Json> {
 
     names.sort_by(|_, _| *rand::thread_rng().choose(&[Greater, Less]).unwrap());
 
+    let mut ballstmt = conn.prepare("SELECT id, name FROM balls").unwrap();
+    let balls: Vec<_> = ballstmt.query_map(&[], |row| {
+            let mut b = BTreeMap::new();
+            b.insert("id".to_string(), row.get::<_, i32>(0).to_json());
+            b.insert("name".to_string(), row.get::<_, String>(1).to_json());
+            b.to_json()
+        })
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+
+
     let mut context = BTreeMap::new();
 
     context.insert("names".to_string(), names.to_json());
+    context.insert("balls".to_string(), balls.to_json());
     context.insert("newgame".to_string(), true.to_json());
     context.insert("heading".to_string(), "Ny kamp".to_json());
     context.insert("body".to_string(), "Ny kamp".to_json());
@@ -73,6 +88,7 @@ fn submit_newgame(request: &mut Request) -> PencilResult {
     let away: i32 = request.form().get("away").unwrap().parse().unwrap();
     let home_score: i32 = request.form().get("home_score").unwrap().parse().unwrap();
     let away_score: i32 = request.form().get("away_score").unwrap().parse().unwrap();
+    let ball: i32 = request.form().get("ball").unwrap().parse().unwrap();
 
     let secret = request.form().get("secret").unwrap();
     if secret != "jeg er sikker" {
@@ -97,9 +113,9 @@ fn submit_newgame(request: &mut Request) -> PencilResult {
     }
 
     println!("{:?}",
-             conn.execute("INSERT INTO games (home_id, away_id, home_score, away_score) VALUES \
-                           (?, ?, ?, ?)",
-                          &[&home, &away, &home_score, &away_score]));
+             conn.execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
+                           ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
+                          &[&home, &away, &home_score, &away_score, &ball]));
 
     pencil::redirect("/", 302)
 }
@@ -109,7 +125,7 @@ fn games(request: &mut Request) -> PencilResult {
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score FROM games g ORDER BY ID DESC")
+                      away_score, ball_id FROM games g ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[], |row| {
             PlayedGame {
@@ -117,6 +133,7 @@ fn games(request: &mut Request) -> PencilResult {
                 away: row.get(1),
                 home_score: row.get(2),
                 away_score: row.get(3),
+                ball: row.get(4),
             }
         })
         .unwrap()
@@ -209,8 +226,9 @@ fn rating(request: &mut Request) -> PencilResult {
 
     let conn = Connection::open("ratings.db").unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
-    let mut stmt2 = conn.prepare("SELECT home_id, away_id, home_score, away_score from games")
-        .unwrap();
+    let mut stmt2 =
+        conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games")
+            .unwrap();
 
     let mut players = HashMap::new();
 

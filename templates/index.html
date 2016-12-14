@@ -147,6 +147,7 @@
                       <th>Hvid spiller</th>
                       <th>Sort spiller</th>
                       <th>Resultat</th>
+                      <th>Bold</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -155,6 +156,7 @@
                         <td>{{home}}</td>
                         <td>{{away}}</td>
                         <td>{{home_score}} &ndash; {{away_score}}</td>
+                        <td><img src="/static/balls/{{ball}}.png" alt="{{ball}}"/></td>
                       </tr>
                     {{/each}}
                   </tbody>
@@ -181,6 +183,13 @@
                   Sort score:
                   <input type="number" name="away_score" min="0" max="10" value="0">
                   <br/>
+                  <br/>
+                  Bold:
+                  <select class="" name="ball">
+                  {{#each balls}}
+                    <option value="{{id}}">{{name}}</option>
+                  {{/each}}
+                  </select><br/>
                   <br/>
                   Kodeord:<br/>
                   <input type="password" name="secret">
