@@ -162,6 +162,8 @@ struct Player {
     kampe: u32,
     vundne: u32,
     tabte: u32,
+    eggs: u32,
+    aces: u32,
 }
 
 use std::mem::replace;
@@ -175,6 +177,8 @@ impl Player {
             kampe: 0,
             vundne: 0,
             tabte: 0,
+            eggs: 0,
+            aces: 0,
         }
     }
     fn duel(&mut self, rater: &Rater, o: Rating, won: bool) {
@@ -203,6 +207,8 @@ impl ToJson for Player {
         m.insert("kampe".to_string(), self.kampe.to_json());
         m.insert("vundne".to_string(), self.vundne.to_json());
         m.insert("tabte".to_string(), self.tabte.to_json());
+        m.insert("eggs".to_string(), self.eggs.to_json());
+        m.insert("aces".to_string(), self.aces.to_json());
         m.to_json()
     }
 }
@@ -216,6 +222,7 @@ fn get_rating(rating: &Rating) -> f64 {
 struct Game {
     home: i32,
     away: i32,
+    ace: bool,
     home_win: bool,
 }
 
@@ -239,18 +246,42 @@ fn rating(request: &mut Request) -> PencilResult {
     }
 
     for g in stmt2.query_map(&[], |row| {
+            let home_score = row.get::<_, i32>(2);
+            let away_score = row.get::<_, i32>(3);
             Game {
                 home: row.get(0),
                 away: row.get(1),
-                home_win: row.get::<_, i32>(2) > row.get::<_, i32>(3),
+                ace: home_score == 0 || away_score == 0,
+                home_win: home_score > away_score,
             }
         })
         .unwrap() {
         let g = g.unwrap();
         let away_rating = players[&g.away].rating.clone();
         let home_rating = players[&g.home].rating.clone();
-        players.get_mut(&g.home).unwrap().duel(&rater, away_rating, g.home_win);
-        players.get_mut(&g.away).unwrap().duel(&rater, home_rating, !g.home_win);
+
+        {
+            let home_player = players.get_mut(&g.home).unwrap();
+            home_player.duel(&rater, away_rating, g.home_win);
+            if g.ace {
+                if g.home_win {
+                    home_player.aces += 1;
+                } else {
+                    home_player.eggs += 1;
+                }
+            }
+        }
+        {
+            let away_player = players.get_mut(&g.away).unwrap();
+            away_player.duel(&rater, home_rating, !g.home_win);
+            if g.ace {
+                if g.home_win {
+                    away_player.eggs += 1;
+                } else {
+                    away_player.aces += 1;
+                }
+            }
+        }
     }
 
     let mut ps: Vec<_> = players.values().map(Clone::clone).collect();

@@ -94,10 +94,11 @@
                       <th>Placering</th>
                       <th>Navn</th>
                       <th>Rating (µ)</th>
-                      <th>Sigma</th>
+                      <th>Sigma (σ)</th>
                       <th>Kampe</th>
                       <th>Vundne</th>
                       <th>Tabte</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -113,6 +114,10 @@
                         <td>{{kampe}}</td>
                         <td>{{vundne}}</td>
                         <td>{{tabte}}</td>
+                        <td>
+                          {{#if aces}}{{aces}} 🏆{{/if}}
+                          {{#if eggs}}{{eggs}}<img style="height: 16px"src="/static/egg.png" alt="🍆">{{/if}}
+                        </td>
                       </tr>
                       {{/if}}
                     {{/each}}
