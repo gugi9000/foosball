@@ -155,7 +155,11 @@
                       <tr>
                         <td>{{home}}</td>
                         <td>{{away}}</td>
-                        <td>{{home_score}} &ndash; {{away_score}}</td>
+                        <td>{{#if home_score}}{{home_score}}
+                                {{else}}<img src="/static/egg.png" alt="{{home}} fik æg!">{{/if}}
+                                &ndash; {{#if away_score}}{{away_score}}
+                                {{else}}<img src="/static/egg.png" alt="{{away}} fik æg!">{{/if}}
+                        </td>
                         <td><img src="/static/balls/{{ball}}.png" alt="{{ball}}"/></td>
                       </tr>
                     {{/each}}

@@ -15,6 +15,7 @@ CREATE TABLE "players" (
 CREATE TABLE "balls" (
 `id`    INTEGER UNIQUE,
 `name`  TEXT UNIQUE,
+`img`  TEXT UNIQUE,
 PRIMARY KEY(`id`)
 );
 

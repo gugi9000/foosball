@@ -127,6 +127,7 @@ fn games(request: &mut Request) -> PencilResult {
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
                       away_score, ball_id FROM games g ORDER BY ID DESC")
             .unwrap();
+    // TODO: join ball_id to balls.img
     let games: Vec<_> = stmt.query_map(&[], |row| {
             PlayedGame {
                 home: row.get(0),
