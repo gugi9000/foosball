@@ -350,6 +350,9 @@ fn rating() -> String {
     } else {
         Greater
     });
+    ps.retain(|a| a.kampe != 0);
+    println!("Rating: {:#?}", ps);
+
     ps.insert(0, Player::new("N/A"));
 
     let mut context = BTreeMap::new();
