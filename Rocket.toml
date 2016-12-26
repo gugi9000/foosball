@@ -1,0 +1,4 @@
+[global]
+address = "localhost"
+port = 5000
+log = "normal"

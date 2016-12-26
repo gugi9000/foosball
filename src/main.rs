@@ -1,21 +1,37 @@
-extern crate pencil;
+#![feature(plugin, custom_derive)]
+#![plugin(rocket_codegen)]
+
+extern crate rocket;
 extern crate bbt;
 extern crate rustc_serialize;
 extern crate env_logger;
 extern crate rand;
 extern crate rusqlite;
 extern crate time;
+#[macro_use]
+extern crate lazy_static;
+extern crate handlebars;
 
-use pencil::Pencil;
-use pencil::{Request, PencilResult, Response};
-use pencil::method::Post;
-use pencil::HTTPError;
+use std::path::{Path, PathBuf};
 use std::collections::BTreeMap;
 use rustc_serialize::json::{Json, ToJson};
 // use time::Timespec;
+use rocket::request::{FormItems, FromFormValue, FromForm, Form};
+use rocket::response::{NamedFile, Response, Responder, Redirect};
+use rocket::http::Status;
+use rocket::Data;
 use rusqlite::Connection;
+use handlebars::Handlebars;
 
 const BETA: f64 = 5000.0;
+
+lazy_static! {
+    static ref HB: Handlebars = {
+        let mut hb = Handlebars::new();
+        hb.register_template_file("index.html", "templates/index.html").unwrap();
+        hb
+    };
+}
 
 #[derive(Debug)]
 struct PlayedGame {
@@ -40,8 +56,9 @@ impl ToJson for PlayedGame {
 
 use rand::Rng;
 
-fn newgame(request: &mut Request) -> PencilResult {
-    request.app.render_template("index.html", &newgame_con())
+#[get("/newgame")]
+fn newgame() -> String {
+    HB.render("index.html", &newgame_con()).unwrap()
 }
 
 fn newgame_con() -> BTreeMap<String, Json> {
@@ -81,27 +98,63 @@ fn newgame_con() -> BTreeMap<String, Json> {
     context
 }
 
-fn submit_newgame(request: &mut Request) -> PencilResult {
+struct NewGame {
+    home: i32,
+    away: i32,
+    home_score: i32,
+    away_score: i32,
+    ball: i32,
+    secret: String
+}
+
+impl<'a> FromForm<'a> for NewGame {
+    type Error = ();
+    fn from_form_string(form_string: &'a str) -> Result<Self, Self::Error> {
+        let mut home = FromFormValue::default();
+        let mut away = FromFormValue::default();
+        let mut home_score = FromFormValue::default();
+        let mut away_score = FromFormValue::default();
+        let mut ball = FromFormValue::default();
+        let mut secret = FromFormValue::default();
+        for (k, v) in FormItems(form_string) {
+            match k {
+                "home" => home = i32::from_form_value(v).ok(),
+                "away" => away = i32::from_form_value(v).ok(),
+                "home_score" => home_score = i32::from_form_value(v).ok(),
+                "away_score" => away_score = i32::from_form_value(v).ok(),
+                "ball" => ball = i32::from_form_value(v).ok(),
+                "secret" => secret = String::from_form_value(v).ok(),
+                _ => ()
+            }
+        }
+        Ok(NewGame {
+            home: home.unwrap(),
+            away: away.unwrap(),
+            home_score: home_score.unwrap(),
+            away_score: away_score.unwrap(),
+            ball: ball.unwrap(),
+            secret: secret.unwrap(),
+        })
+    }
+}
+
+#[post("/newgame/submit", data = "<f>")]
+fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
     let conn = Connection::open("ratings.db").unwrap();
 
-    let home: i32 = request.form().get("home").unwrap().parse().unwrap();
-    let away: i32 = request.form().get("away").unwrap().parse().unwrap();
-    let home_score: i32 = request.form().get("home_score").unwrap().parse().unwrap();
-    let away_score: i32 = request.form().get("away_score").unwrap().parse().unwrap();
-    let ball: i32 = request.form().get("ball").unwrap().parse().unwrap();
+    let f = f.into_inner();
 
-    let secret = request.form().get("secret").unwrap();
-    if secret != "jeg er sikker" {
+    if f.secret != "jeg er sikker" {
         let mut context = newgame_con();
         context.insert("nykamp_fejl".to_string(),
                        "Det indtastede kodeord er forkert 💩".to_json());
         context.insert("heading".to_string(), "Fejl: Ny kamp".to_json());
         context.insert("body".to_string(),
                        "Fejl ved registrering af ny kamp".to_json());
-        return request.app.render_template("index.html", &context);
+        return HB.render("index.html", &context).unwrap().respond()
     }
 
-    if !(home_score == 10 || away_score == 10) || home_score == away_score || home == away {
+    if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score || f.home == f.away {
         let mut context = newgame_con();
 
         context.insert("nykamp_fejl".to_string(),
@@ -109,18 +162,19 @@ fn submit_newgame(request: &mut Request) -> PencilResult {
         context.insert("heading".to_string(), "Fejl: Ny kamp".to_json());
         context.insert("body".to_string(),
                        "Fejl ved registrering af ny kamp".to_json());
-        return request.app.render_template("index.html", &context);
+        return HB.render("index.html", &context).unwrap().respond()
     }
 
     println!("{:?}",
              conn.execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
                            ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
-                          &[&home, &away, &home_score, &away_score, &ball]));
+                          &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]));
 
-    pencil::redirect("/", 302)
+    Redirect::to("/").respond()
 }
 
-fn games(request: &mut Request) -> PencilResult {
+#[get("/games")]
+fn games() -> String {
     let conn = Connection::open("ratings.db").unwrap();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -146,13 +200,12 @@ fn games(request: &mut Request) -> PencilResult {
     context.insert("games".to_string(), games.to_json());
     context.insert("heading".to_string(), "Kampe".to_json());
     context.insert("body".to_string(), "Alle kampe".to_json());
-    request.app.render_template("index.html", &context)
+    HB.render("index.html", &context).unwrap()
 }
 
-fn page_not_found(_: HTTPError) -> PencilResult {
-    let mut response = Response::from("Uh-ohh, 404 :O");
-    response.status_code = 404;
-    Ok(response)
+#[error(404)]
+fn page_not_found() -> &'static str {
+    "Uh-ohh, 404 :O"
 }
 
 #[derive(Debug, Clone)]
@@ -229,7 +282,13 @@ struct Game {
 use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
 
-fn rating(request: &mut Request) -> PencilResult {
+#[get("/")]
+fn root() -> String {
+    rating()
+}
+
+#[get("/rating")]
+fn rating() -> String {
     let rater = Rater::new(BETA / 6.0);
 
     let conn = Connection::open("ratings.db").unwrap();
@@ -297,10 +356,11 @@ fn rating(request: &mut Request) -> PencilResult {
     context.insert("ps".to_string(), ps.to_json());
     context.insert("heading".to_string(), "Stilling".to_json());
     context.insert("body".to_string(), "Stilling".to_json());
-    request.app.render_template("index.html", &context)
+    HB.render("index.html", &context).unwrap()
 }
 
-fn players(request: &mut Request) -> PencilResult {
+#[get("/players")]
+fn players() -> String {
     let conn = Connection::open("ratings.db").unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
 
@@ -319,11 +379,12 @@ fn players(request: &mut Request) -> PencilResult {
     context.insert("players".to_string(), players.to_json());
     context.insert("heading".to_string(), "Spillere".to_json());
     context.insert("body".to_string(), "Spillere".to_json());
-    request.app.render_template("index.html", &context)
+    HB.render("index.html", &context).unwrap()
 }
 
-fn newplayer(request: &mut Request) -> PencilResult {
-    request.app.render_template("index.html", &newplayer_con())
+#[get("/newplayer")]
+fn newplayer() -> String {
+    HB.render("index.html", &newplayer_con()).unwrap()
 }
 
 fn newplayer_con() -> BTreeMap<String, Json> {
@@ -334,9 +395,21 @@ fn newplayer_con() -> BTreeMap<String, Json> {
     context
 }
 
-fn submit_newplayer(request: &mut Request) -> PencilResult {
+#[post("/newplayer/submit", data = "<f>")]
+fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
+    let mut v = Vec::new();
+    f.stream_to(&mut v).unwrap();
+
+    let mut name = Default::default();
+    let mut secret = Default::default();
+    for (k, v) in FormItems(&String::from_utf8(v).unwrap()) {
+        match k {
+            "name" => name = String::from_form_value(v).unwrap(),
+            "secret" => secret = String::from_form_value(v).unwrap(),
+            _ => ()
+        }
+    };
     {
-        let secret = request.form().get("secret").unwrap();
         if secret != "jeg er sikker" {
             let mut context = newplayer_con();
             context.insert("nyspiller_fejl".to_string(),
@@ -344,10 +417,9 @@ fn submit_newplayer(request: &mut Request) -> PencilResult {
             context.insert("heading".to_string(), "Fejl: Ny spiller".to_json());
             context.insert("body".to_string(),
                            "Fejl ved registrering af ny spiller".to_json());
-            return request.app.render_template("index.html", &context);
+            return HB.render("index.html", &context).respond();
         }
     }
-    let name = request.form().get("name").unwrap();
     if name.is_empty() {
         let mut context = newplayer_con();
 
@@ -356,35 +428,24 @@ fn submit_newplayer(request: &mut Request) -> PencilResult {
         context.insert("heading".to_string(), "Fejl: Ny spiller".to_json());
         context.insert("body".to_string(),
                        "Fejl ved registrering af ny spiller".to_json());
-        return request.app.render_template("index.html", &context);
+        return HB.render("index.html", &context).respond();
     }
     let conn = Connection::open("ratings.db").unwrap();
     println!("{:?}",
-             conn.execute("INSERT INTO players (name) VALUES (?)", &[&*name]));
+             conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
 
-    pencil::redirect("/", 302)
+    Redirect::to("/").respond()
 }
 
 
 fn main() {
-    let mut app = Pencil::new("");
-    app.register_template("index.html");
-    app.get("/", "index_template", rating);
-    app.get("/rating", "flest heste", rating);
-    app.get("/games", "games", games);
-    app.get("/newgame", "new squirtle game", newgame);
-    app.get("/players", "players hest", players);
-    app.route("/newgame/submit", &[Post], "ny kamp", submit_newgame);
-    app.get("/newplayer", "players new new new hest", newplayer);
-    app.route("/newplayer/submit",
-              &[Post],
-              "ny hestesandwcih",
-              submit_newplayer);
+    rocket::ignite()
+        .mount("/", routes![root, rating, games, newgame, players, submit_newgame, newplayer, submit_newplayer, static_handler])
+        .catch(errors![page_not_found])
+        .launch();
+}
 
-    app.enable_static_file_handling();
-    app.httperrorhandler(404, page_not_found);
-    // app.set_debug(true);
-    // app.set_log_level();
-    // env_logger::init().unwrap();
-    app.run("127.0.0.1:5000");
+#[get("/static/<file..>")]
+fn static_handler(file: PathBuf) -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/").join(file)).ok()
 }
