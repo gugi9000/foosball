@@ -2,8 +2,6 @@
 A ratings tracker for the office foosball league
 
 ## todo
-* log ball used
-* log time and date for each game
 * top 3 photos on leaderboard
 * don't show players with 0 games
 

@@ -104,7 +104,7 @@ struct NewGame {
     home_score: i32,
     away_score: i32,
     ball: i32,
-    secret: String
+    secret: String,
 }
 
 impl<'a> FromForm<'a> for NewGame {
@@ -124,7 +124,7 @@ impl<'a> FromForm<'a> for NewGame {
                 "away_score" => away_score = i32::from_form_value(v).ok(),
                 "ball" => ball = i32::from_form_value(v).ok(),
                 "secret" => secret = String::from_form_value(v).ok(),
-                _ => ()
+                _ => (),
             }
         }
         Ok(NewGame {
@@ -151,10 +151,11 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
         context.insert("heading".to_string(), "Fejl: Ny kamp".to_json());
         context.insert("body".to_string(),
                        "Fejl ved registrering af ny kamp".to_json());
-        return HB.render("index.html", &context).unwrap().respond()
+        return HB.render("index.html", &context).unwrap().respond();
     }
 
-    if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score || f.home == f.away {
+    if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
+       f.home == f.away {
         let mut context = newgame_con();
 
         context.insert("nykamp_fejl".to_string(),
@@ -162,7 +163,7 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
         context.insert("heading".to_string(), "Fejl: Ny kamp".to_json());
         context.insert("body".to_string(),
                        "Fejl ved registrering af ny kamp".to_json());
-        return HB.render("index.html", &context).unwrap().respond()
+        return HB.render("index.html", &context).unwrap().respond();
     }
 
     println!("{:?}",
@@ -406,9 +407,9 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
         match k {
             "name" => name = String::from_form_value(v).unwrap(),
             "secret" => secret = String::from_form_value(v).unwrap(),
-            _ => ()
+            _ => (),
         }
-    };
+    }
     {
         if secret != "jeg er sikker" {
             let mut context = newplayer_con();
@@ -440,7 +441,16 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
 
 fn main() {
     rocket::ignite()
-        .mount("/", routes![root, rating, games, newgame, players, submit_newgame, newplayer, submit_newplayer, static_handler])
+        .mount("/",
+               routes![root,
+                       rating,
+                       games,
+                       newgame,
+                       players,
+                       submit_newgame,
+                       newplayer,
+                       submit_newplayer,
+                       static_handler])
         .catch(errors![page_not_found])
         .launch();
 }
