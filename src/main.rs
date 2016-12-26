@@ -40,6 +40,7 @@ struct PlayedGame {
     home_score: i32,
     away_score: i32,
     ball: i32,
+    dato: String,
 }
 
 impl ToJson for PlayedGame {
@@ -50,6 +51,7 @@ impl ToJson for PlayedGame {
         m.insert("home_score".to_string(), self.home_score.to_json());
         m.insert("away_score".to_string(), self.away_score.to_json());
         m.insert("ball".to_string(), self.ball.to_json());
+        m.insert("dato".to_string(), self.dato.to_json());
         m.to_json()
     }
 }
@@ -180,7 +182,7 @@ fn games() -> String {
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id FROM games g ORDER BY ID DESC")
+                      away_score, ball_id, dato FROM games g ORDER BY ID DESC")
             .unwrap();
     // TODO: join ball_id to balls.img
     let games: Vec<_> = stmt.query_map(&[], |row| {
@@ -190,6 +192,7 @@ fn games() -> String {
                 home_score: row.get(2),
                 away_score: row.get(3),
                 ball: row.get(4),
+                dato: row.get(5),
             }
         })
         .unwrap()
@@ -351,8 +354,6 @@ fn rating() -> String {
         Greater
     });
     ps.retain(|a| a.kampe != 0);
-    println!("Rating: {:#?}", ps);
-
     ps.insert(0, Player::new("N/A"));
 
     let mut context = BTreeMap::new();

@@ -154,6 +154,7 @@
                       <th>Sort spiller</th>
                       <th>Resultat</th>
                       <th>Bold</th>
+                      <th>Tidspunkt</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -167,6 +168,7 @@
                                 {{else}}<img src="/static/egg.png" alt="{{away}} fik æg!">{{/if}}
                         </td>
                         <td><img src="/static/balls/{{ball}}.png" alt="{{ball}}"/></td>
+                        <td>{{dato}}</td>
                       </tr>
                     {{/each}}
                   </tbody>
@@ -227,7 +229,7 @@
         </div>
         <footer class="footer">
            <div class="container">
-              <p class="text-muted">Foosball ratings v0.4.2 &copy; Orangenose 2016</p>
+              <p class="text-muted">Foosball ratings v0.5.5 &copy; Orangenose 2016</p>
            </div>
         </footer>
 
