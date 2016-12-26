@@ -295,7 +295,7 @@ fn rating() -> String {
     let conn = Connection::open("ratings.db").unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut stmt2 =
-        conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games")
+        conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games WHERE dato >= date('now','-90 day')")
             .unwrap();
 
     let mut players = HashMap::new();
