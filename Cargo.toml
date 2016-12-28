@@ -1,6 +1,6 @@
 [package]
 name = "foosball"
-version = "0.1.0"
+version = "0.5.5"
 authors = ["Bjarke Sørensen <bs@wasd.dk>",
     "Lucas Falch Sørensen <lucas@wasd.dk"]
 
@@ -8,10 +8,10 @@ authors = ["Bjarke Sørensen <bs@wasd.dk>",
 rocket = "0.1.2"
 rocket_codegen = "0.1.2"
 bbt = "0.1.0"
-rustc-serialize = "0.3"
-env_logger = "*"
+rustc-serialize = "0.3.22"
 rand = "*"
 rusqlite = "0.7.3"
 time = "~0.1.0"
 lazy_static = "0.2"
 handlebars = "0.23"
+toml = "0.2"

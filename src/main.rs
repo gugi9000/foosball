@@ -4,15 +4,16 @@
 extern crate rocket;
 extern crate bbt;
 extern crate rustc_serialize;
-extern crate env_logger;
 extern crate rand;
 extern crate rusqlite;
 extern crate time;
+extern crate toml;
 #[macro_use]
 extern crate lazy_static;
 extern crate handlebars;
 
 use std::path::{Path, PathBuf};
+use std::io::Read;
 use std::collections::BTreeMap;
 use rustc_serialize::json::{Json, ToJson};
 // use time::Timespec;
@@ -24,12 +25,27 @@ use rusqlite::Connection;
 use handlebars::Handlebars;
 
 const BETA: f64 = 5000.0;
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
+#[derive(Debug, RustcDecodable)]
+struct Config {
+    database: String,
+    title: String,
+    secret: String,
+}
 
 lazy_static! {
     static ref HB: Handlebars = {
         let mut hb = Handlebars::new();
         hb.register_template_file("index.html", "templates/index.html").unwrap();
         hb
+    };
+    static ref CONFIG: Config = {
+        let mut buf = String::new();
+        let mut file = std::fs::File::open("Foosball.toml").unwrap();
+        file.read_to_string(&mut buf).unwrap();
+
+        toml::decode_str(&buf).unwrap()
     };
 }
 
@@ -64,7 +80,7 @@ fn newgame() -> String {
 }
 
 fn newgame_con() -> BTreeMap<String, Json> {
-    let conn = Connection::open("ratings.db").unwrap();
+    let conn = Connection::open(&CONFIG.database).unwrap();
     let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
     let mut names: Vec<_> = stmt.query_map(&[], |row| {
             let mut n = BTreeMap::new();
@@ -97,6 +113,7 @@ fn newgame_con() -> BTreeMap<String, Json> {
     context.insert("newgame".to_string(), true.to_json());
     context.insert("heading".to_string(), "Ny kamp".to_json());
     context.insert("body".to_string(), "Ny kamp".to_json());
+    context.insert("version".to_string(), VERSION.to_json());
     context
 }
 
@@ -142,11 +159,11 @@ impl<'a> FromForm<'a> for NewGame {
 
 #[post("/newgame/submit", data = "<f>")]
 fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
-    let conn = Connection::open("ratings.db").unwrap();
+    let conn = Connection::open(&CONFIG.database).unwrap();
 
     let f = f.into_inner();
 
-    if f.secret != "jeg er sikker" {
+    if f.secret != CONFIG.secret {
         let mut context = newgame_con();
         context.insert("nykamp_fejl".to_string(),
                        "Det indtastede kodeord er forkert 💩".to_json());
@@ -178,7 +195,7 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
 
 #[get("/games")]
 fn games() -> String {
-    let conn = Connection::open("ratings.db").unwrap();
+    let conn = Connection::open(&CONFIG.database).unwrap();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
@@ -204,12 +221,19 @@ fn games() -> String {
     context.insert("games".to_string(), games.to_json());
     context.insert("heading".to_string(), "Kampe".to_json());
     context.insert("body".to_string(), "Alle kampe".to_json());
+    context.insert("version".to_string(), VERSION.to_json());
     HB.render("index.html", &context).unwrap()
 }
 
 #[error(404)]
-fn page_not_found() -> &'static str {
-    "Uh-ohh, 404 :O"
+fn page_not_found() -> String {
+    let mut context = BTreeMap::new();
+
+    context.insert("not_found".to_string(), "Not Found".to_json());
+    context.insert("heading".to_string(), "404 Not Found".to_json());
+    context.insert("body".to_string(), "404 Not Found".to_json());
+    context.insert("version".to_string(), VERSION.to_json());
+    HB.render("index.html", &context).unwrap()
 }
 
 #[derive(Debug, Clone)]
@@ -295,7 +319,7 @@ fn root() -> String {
 fn rating() -> String {
     let rater = Rater::new(BETA / 6.0);
 
-    let conn = Connection::open("ratings.db").unwrap();
+    let conn = Connection::open(&CONFIG.database).unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut stmt2 =
         conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games WHERE dato >= date('now','-90 day')")
@@ -361,12 +385,13 @@ fn rating() -> String {
     context.insert("ps".to_string(), ps.to_json());
     context.insert("heading".to_string(), "Stilling".to_json());
     context.insert("body".to_string(), "Stilling".to_json());
+    context.insert("version".to_string(), VERSION.to_json());
     HB.render("index.html", &context).unwrap()
 }
 
 #[get("/players")]
 fn players() -> String {
-    let conn = Connection::open("ratings.db").unwrap();
+    let conn = Connection::open(&CONFIG.database).unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
 
     let mut players = Vec::new();
@@ -384,6 +409,7 @@ fn players() -> String {
     context.insert("players".to_string(), players.to_json());
     context.insert("heading".to_string(), "Spillere".to_json());
     context.insert("body".to_string(), "Spillere".to_json());
+    context.insert("version".to_string(), VERSION.to_json());
     HB.render("index.html", &context).unwrap()
 }
 
@@ -397,6 +423,7 @@ fn newplayer_con() -> BTreeMap<String, Json> {
     context.insert("newplayer".to_string(), true.to_json());
     context.insert("heading".to_string(), "Ny spiller".to_json());
     context.insert("body".to_string(), "Ny spiller".to_json());
+    context.insert("version".to_string(), VERSION.to_json());
     context
 }
 
@@ -415,7 +442,7 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
         }
     }
     {
-        if secret != "jeg er sikker" {
+        if secret != CONFIG.secret {
             let mut context = newplayer_con();
             context.insert("nyspiller_fejl".to_string(),
                            "Det indtastede kodeord er forkert 💩".to_json());
@@ -435,7 +462,7 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
                        "Fejl ved registrering af ny spiller".to_json());
         return HB.render("index.html", &context).respond();
     }
-    let conn = Connection::open("ratings.db").unwrap();
+    let conn = Connection::open(&CONFIG.database).unwrap();
     println!("{:?}",
              conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
 
