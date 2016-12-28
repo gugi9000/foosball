@@ -4,13 +4,13 @@ A rating calculator for the office foosball league
 Maintains a leader board using a ratings system, BBT,
 based on SkillScore and Elo.
 
-The more games you play the less variance on your rating. 
+The more games you play the less variance on your rating.
 Compete against better rated player (and win) to improve
 your rating the most.
 
 It seems more far when not everyone has time to play as
 often as others. Also those who have a good streak still
-cannot rest on their laurrels.
+cannot rest on their laurels.
 
 ## Release planned for January 1
 We are currently testing the software in-house with a lot
@@ -23,9 +23,7 @@ Ease of use and a nice layout ensures that all games get tracked.
 * visual selector for ball type
 * top 3 photos on leaderboard
 * config outside of code
-** submission password
-** database-file
-** League name
+    * League name
 * auto create database when missing
 
 ## analysis tab ideas
