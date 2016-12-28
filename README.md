@@ -1,9 +1,18 @@
-# foosball-rating
-A ratings tracker for the office foosball league
+# foosball
+A rating calculator for the office foosball league
+
+Maintains a leader board using a ratings system, BBT, based on SkillScore and Elo.
+
+The more games you play the less variance on your rating. 
+Compete against better rated player (and win) to improve
+your rating the most.
+
+It seems more far when not everyone has time to play as
+often as others. Also those who have a good streak still
+cannot rest on their laurrels.
 
 ## todo
 * top 3 photos on leaderboard
-* don't show players with 0 games
 
 ## analysis tab ideas
 * 1v1 - show all games between two players and summed stats

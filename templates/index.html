@@ -123,8 +123,18 @@
                     {{/each}}
                   </tbody>
                 </table>
+                <p>
+                <a href="/newgame">
+                <button type="button" class="btn btn-default">Ny kamp</button>
+                </a>
+                </p>
                 {{/if}}
                 {{#if players}}
+                <p>
+                <a href="/newplayer">
+                <button type="button" class="btn btn-default">Ny spiller</button>
+                </a>
+                </p>
                 <table class="table table-striped">
                   <thead>
                     <tr>
@@ -147,6 +157,11 @@
                 </table>
                 {{/if}}
                 {{#if games}}
+                <p>
+                <a href="/newgame">
+                <button type="button" class="btn btn-default">Ny kamp</button>
+                </a>
+                </p>
                 <table class="table table-striped">
                   <thead>
                     <tr>
@@ -229,7 +244,7 @@
         </div>
         <footer class="footer">
            <div class="container">
-              <p class="text-muted">Foosball ratings v0.5.5 &copy; Orangenose 2016</p>
+              <p class="text-muted">foosball v0.6.5 &copy; Orangenose 2016</p>
            </div>
         </footer>
 
