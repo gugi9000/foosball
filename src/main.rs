@@ -392,7 +392,7 @@ fn rating() -> String {
 #[get("/players")]
 fn players() -> String {
     let conn = Connection::open(&CONFIG.database).unwrap();
-    let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
+    let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
     let mut players = Vec::new();
 
