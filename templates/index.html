@@ -211,12 +211,10 @@
                   <input type="number" name="away_score" min="0" max="10" value="10">
                   <br/>
                   <br/>
-                  Bold:
-                  <select class="" name="ball">
+                  Bold:<br/>
                   {{#each balls}}
-                    <option value="{{id}}">{{name}}</option>
+                  <input type="radio" name="ball" value="{{id}}" required><img src="/static/balls/{{id}}.png" alt="{{name}}" /><br>
                   {{/each}}
-                  </select><br/>
                   <br/>
                   Kodeord:<br/>
                   <input type="password" name="secret">

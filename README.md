@@ -20,7 +20,6 @@ Ease of use and a nice layout ensures that all games get tracked.
 
 
 ## todo
-* visual selector for ball type
 * top 3 photos on leaderboard
 * config outside of code
     * League name
