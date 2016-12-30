@@ -25,7 +25,7 @@ Stilling
     {% for p in players %}
       <tr>
         <td>{{loop.index}}</td>
-        <td>{{p.name}}</td>
+        <td>{{p.name | escape}}</td>
         <td>{{p.rating.mu}}</td>
         <td>{{p.rating.sigma}}</td>
         <td>{{p.kampe}}</td>

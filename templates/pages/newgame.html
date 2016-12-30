@@ -11,7 +11,7 @@ Ny Kamp
   Hvid spiller:
   <select class="" name="home">
   {% for n in names %}
-    <option value="{{n.id}}">{{n.name}}</option>
+    <option value="{{n.id}}">{{n.name | escape}}</option>
   {% endfor %}
   <br/>
   </select><br/>
@@ -21,7 +21,7 @@ Ny Kamp
   Sort spiller:
   <select class="" name="away">
   {% for n in names %}
-    <option value="{{n.id}}">{{n.name}}</option>
+    <option value="{{n.id}}">{{n.name | escape}}</option>
   {% endfor %}
   </select><br/>
   Sort score:

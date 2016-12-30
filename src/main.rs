@@ -15,6 +15,7 @@ extern crate tera;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
+extern crate serde_json;
 
 use std::path::{Path, PathBuf};
 use std::io::Read;
@@ -24,7 +25,7 @@ use rocket::response::{NamedFile, Response, Responder, Redirect};
 use rocket::http::Status;
 use rocket::Data;
 use rusqlite::Connection;
-use tera::{Tera, Context};
+use tera::{Tera, Context, Value};
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -36,8 +37,22 @@ struct Config {
     secret: String,
 }
 
+fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value> {
+    let goals = try_get_value!("egg", "value", i32, value);
+    if goals == 0 {
+        Ok(Value::String(format!(r#"<img src="/static/egg.png" alt="{} fik æg!">"#, try_get_value!("egg", "person", String, args["person"]))))
+    } else {
+        Ok(value)
+    }
+}
+
 lazy_static! {
-    static ref TERA: Tera = compile_templates!("templates/**/*.html");
+    static ref TERA: Tera = {
+        let mut tera = compile_templates!("templates/**/*.html");
+        tera.autoescape_on(vec![]);
+        tera.register_filter("egg", egg_filter);
+        tera
+    };
     static ref CONFIG: Config = {
         let mut buf = String::new();
         let mut file = std::fs::File::open("Foosball.toml").unwrap();
