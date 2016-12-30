@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block header %}
+Alle Kampe
+{% endblock header %}
+{% block title %}
+Kampe
+{% endblock title %}
+{% block content %}
+<p>
+<a href="/newgame">
+<button type="button" class="btn btn-default">Ny kamp</button>
+</a>
+</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Hvid spiller</th>
+      <th>Sort spiller</th>
+      <th>Resultat</th>
+      <th>Bold</th>
+      <th>Tidspunkt</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in games %}
+      <tr>
+        <td>{{g.home}}</td>
+        <td>{{g.away}}</td>
+        <td>{% if g.home_score %}{{g.home_score}}
+                {% else %}<img src="/static/egg.png" alt="{{g.home}} fik æg!">{% endif %}
+                &ndash; {% if g.away_score %}{{g.away_score}}
+                {% else %}<img src="/static/egg.png" alt="{{g.away}} fik æg!">{% endif %}
+        </td>
+        <td><img src="/static/balls/{{g.ball}}.png" alt="{{g.ball}}"/></td>
+        <td>{{g.dato}}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}

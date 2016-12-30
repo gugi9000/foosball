@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block header %}
+Ny Kamp
+{% endblock header %}
+{% block title %}
+Ny Kamp
+{% endblock title %}
+{% block content %}
+<form method="post" action="/newgame/submit">
+  Hvid spiller:
+  <select class="" name="home">
+  {% for n in names %}
+    <option value="{{n.id}}">{{n.name}}</option>
+  {% endfor %}
+  <br/>
+  </select><br/>
+  Hvid score:
+  <input type="number" name="home_score" min="0" max="10" value="10"><br/>
+  <br/>
+  Sort spiller:
+  <select class="" name="away">
+  {% for n in names %}
+    <option value="{{n.id}}">{{n.name}}</option>
+  {% endfor %}
+  </select><br/>
+  Sort score:
+  <input type="number" name="away_score" min="0" max="10" value="10">
+  <br/>
+  <br/>
+  Bold:<br/>
+  {% for b in balls %}
+  <input type="radio" name="ball" value="{{b.id}}" required><img src="/static/balls/{{b.id}}.png" alt="{{b.name}}" /><br>
+  {% endfor %}
+  <br/>
+  Kodeord:<br/>
+  <input type="password" name="secret">
+  <br/>
+  <br/>
+  <input type="submit" name="submit" value="Indsend">
+<form>
+{% endblock content %}
