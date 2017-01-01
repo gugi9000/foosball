@@ -6,7 +6,6 @@ extern crate bbt;
 extern crate rustc_serialize;
 extern crate rand;
 extern crate rusqlite;
-extern crate time;
 extern crate toml;
 #[macro_use]
 extern crate lazy_static;
@@ -19,7 +18,6 @@ extern crate serde_json;
 
 use std::path::{Path, PathBuf};
 use std::io::Read;
-// use time::Timespec;
 use rocket::request::{FormItems, FromFormValue, FromForm, Form};
 use rocket::response::{NamedFile, Response, Responder, Redirect};
 use rocket::http::Status;
@@ -438,6 +436,7 @@ fn main() {
                        submit_newgame,
                        newplayer,
                        submit_newplayer,
+                       favicon_handler,
                        static_handler])
         .catch(errors![page_not_found])
         .launch();
@@ -446,4 +445,9 @@ fn main() {
 #[get("/static/<file..>")]
 fn static_handler(file: PathBuf) -> Option<NamedFile> {
     NamedFile::open(Path::new("static/").join(file)).ok()
+}
+
+#[get("/favicon.ico")]
+fn favicon_handler() -> Option<NamedFile> {
+    NamedFile::open(Path::new("static/dynateam.ico")).ok()
 }
