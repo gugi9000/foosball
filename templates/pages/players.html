@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block header %}
+Spillere
+{% endblock header %}
+{% block title %}
+Spillere
+{% endblock title %}
+{% block content %}
+<p>
+<a href="/newplayer">
+<button type="button" class="btn btn-default">Ny spiller</button>
+</a>
+</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>&nbsp;</th>
+      <th>Spiller</th>
+      <th>Oprettet</th>
+      <th>Seneste kamp</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in players %}
+      <tr>
+        <td>{{p.id}}</td>
+        <td>{{p.name | escape}}</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}

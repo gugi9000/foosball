@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block header %}
+Stilling
+{% endblock header %}
+{% block title %}
+Stilling
+{% endblock title %}
+
+{% block content %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Placering</th>
+      <th>Navn</th>
+      <th>Rating (µ)</th>
+      <th>Sigma (σ)</th>
+      <th>Kampe</th>
+      <th>Vundne</th>
+      <th>Tabte</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in players %}
+      <tr>
+        <td>{{loop.index}}</td>
+        <td>{{p.name | escape}}</td>
+        <td>{{p.rating.mu}}</td>
+        <td>{{p.rating.sigma}}</td>
+        <td>{{p.kampe}}</td>
+        <td>{{p.vundne}}</td>
+        <td>{{p.tabte}}</td>
+        <td>
+          {% if p.aces %} {{p.aces}} 🏆 {% endif %}
+          {% if p.eggs %} {{p.eggs}} <img style="height: 16px"src="/static/egg.png" alt="🍆"> {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p>
+<a href="/newgame">
+<button type="button" class="btn btn-default">Ny kamp</button>
+</a>
+</p>
+{% endblock content %}

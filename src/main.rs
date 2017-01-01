@@ -1,4 +1,4 @@
-#![feature(plugin, custom_derive)]
+#![feature(plugin, custom_derive, proc_macro)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -10,19 +10,22 @@ extern crate time;
 extern crate toml;
 #[macro_use]
 extern crate lazy_static;
-extern crate handlebars;
+#[macro_use]
+extern crate tera;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
 
 use std::path::{Path, PathBuf};
 use std::io::Read;
-use std::collections::BTreeMap;
-use rustc_serialize::json::{Json, ToJson};
 // use time::Timespec;
 use rocket::request::{FormItems, FromFormValue, FromForm, Form};
 use rocket::response::{NamedFile, Response, Responder, Redirect};
 use rocket::http::Status;
 use rocket::Data;
 use rusqlite::Connection;
-use handlebars::Handlebars;
+use tera::{Tera, Context, Value};
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -34,11 +37,21 @@ struct Config {
     secret: String,
 }
 
+fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value> {
+    let goals = try_get_value!("egg", "value", i32, value);
+    if goals == 0 {
+        Ok(Value::String(format!(r#"<img src="/static/egg.png" alt="{} fik æg!">"#, try_get_value!("egg", "person", String, args["person"]))))
+    } else {
+        Ok(value)
+    }
+}
+
 lazy_static! {
-    static ref HB: Handlebars = {
-        let mut hb = Handlebars::new();
-        hb.register_template_file("index.html", "templates/index.html").unwrap();
-        hb
+    static ref TERA: Tera = {
+        let mut tera = compile_templates!("templates/**/*.html");
+        tera.autoescape_on(vec![]);
+        tera.register_filter("egg", egg_filter);
+        tera
     };
     static ref CONFIG: Config = {
         let mut buf = String::new();
@@ -49,7 +62,7 @@ lazy_static! {
     };
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct PlayedGame {
     home: String,
     away: String,
@@ -59,34 +72,34 @@ struct PlayedGame {
     dato: String,
 }
 
-impl ToJson for PlayedGame {
-    fn to_json(&self) -> Json {
-        let mut m: BTreeMap<String, Json> = BTreeMap::new();
-        m.insert("home".to_string(), self.home.to_json());
-        m.insert("away".to_string(), self.away.to_json());
-        m.insert("home_score".to_string(), self.home_score.to_json());
-        m.insert("away_score".to_string(), self.away_score.to_json());
-        m.insert("ball".to_string(), self.ball.to_json());
-        m.insert("dato".to_string(), self.dato.to_json());
-        m.to_json()
-    }
+#[derive(Debug, Serialize)]
+struct Named {
+    id: i32,
+    name: String
+}
+
+fn create_context(current_page: &str) -> Context {
+    let mut c = Context::new();
+    c.add("version", &VERSION);
+    c.add("cur", &current_page);
+    c
 }
 
 use rand::Rng;
 
 #[get("/newgame")]
 fn newgame() -> String {
-    HB.render("index.html", &newgame_con()).unwrap()
+    TERA.render("pages/newgame.html", newgame_con()).unwrap()
 }
 
-fn newgame_con() -> BTreeMap<String, Json> {
+fn newgame_con() -> Context {
     let conn = Connection::open(&CONFIG.database).unwrap();
     let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
     let mut names: Vec<_> = stmt.query_map(&[], |row| {
-            let mut n = BTreeMap::new();
-            n.insert("id".to_string(), row.get::<_, i32>(0).to_json());
-            n.insert("name".to_string(), row.get::<_, String>(1).to_json());
-            n.to_json()
+            Named {
+                id: row.get(0),
+                name: row.get(1)
+            }
         })
         .unwrap()
         .map(Result::unwrap)
@@ -96,24 +109,20 @@ fn newgame_con() -> BTreeMap<String, Json> {
 
     let mut ballstmt = conn.prepare("SELECT id, name FROM balls").unwrap();
     let balls: Vec<_> = ballstmt.query_map(&[], |row| {
-            let mut b = BTreeMap::new();
-            b.insert("id".to_string(), row.get::<_, i32>(0).to_json());
-            b.insert("name".to_string(), row.get::<_, String>(1).to_json());
-            b.to_json()
+            Named {
+                id: row.get(0),
+                name: row.get(1)
+            }
         })
         .unwrap()
         .map(Result::unwrap)
         .collect();
 
 
-    let mut context = BTreeMap::new();
+    let mut context = create_context("newgame");
 
-    context.insert("names".to_string(), names.to_json());
-    context.insert("balls".to_string(), balls.to_json());
-    context.insert("newgame".to_string(), true.to_json());
-    context.insert("heading".to_string(), "Ny kamp".to_json());
-    context.insert("body".to_string(), "Ny kamp".to_json());
-    context.insert("version".to_string(), VERSION.to_json());
+    context.add("names", &names);
+    context.add("balls", &balls);
     context
 }
 
@@ -127,7 +136,7 @@ struct NewGame {
 }
 
 impl<'a> FromForm<'a> for NewGame {
-    type Error = ();
+    type Error = &'a str;
     fn from_form_string(form_string: &'a str) -> Result<Self, Self::Error> {
         let mut home = FromFormValue::default();
         let mut away = FromFormValue::default();
@@ -137,12 +146,12 @@ impl<'a> FromForm<'a> for NewGame {
         let mut secret = FromFormValue::default();
         for (k, v) in FormItems(form_string) {
             match k {
-                "home" => home = i32::from_form_value(v).ok(),
-                "away" => away = i32::from_form_value(v).ok(),
-                "home_score" => home_score = i32::from_form_value(v).ok(),
-                "away_score" => away_score = i32::from_form_value(v).ok(),
-                "ball" => ball = i32::from_form_value(v).ok(),
-                "secret" => secret = String::from_form_value(v).ok(),
+                "home" => home = Some(i32::from_form_value(v)?),
+                "away" => away = Some(i32::from_form_value(v)?),
+                "home_score" => home_score = Some(i32::from_form_value(v)?),
+                "away_score" => away_score = Some(i32::from_form_value(v)?),
+                "ball" => ball = Some(i32::from_form_value(v)?),
+                "secret" => secret = Some(String::from_form_value(v)?),
                 _ => (),
             }
         }
@@ -165,30 +174,23 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
 
     if f.secret != CONFIG.secret {
         let mut context = newgame_con();
-        context.insert("nykamp_fejl".to_string(),
-                       "Det indtastede kodeord er forkert 💩".to_json());
-        context.insert("heading".to_string(), "Fejl: Ny kamp".to_json());
-        context.insert("body".to_string(),
-                       "Fejl ved registrering af ny kamp".to_json());
-        return HB.render("index.html", &context).unwrap().respond();
+        context.add("fejl", &"Det indtastede kodeord er forkert 💩");
+        return TERA.render("pages/newgame_fejl.html", context).respond();
     }
 
     if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
        f.home == f.away {
         let mut context = newgame_con();
 
-        context.insert("nykamp_fejl".to_string(),
-                       "Den indtastede kamp er ikke lovlig 😜".to_json());
-        context.insert("heading".to_string(), "Fejl: Ny kamp".to_json());
-        context.insert("body".to_string(),
-                       "Fejl ved registrering af ny kamp".to_json());
-        return HB.render("index.html", &context).unwrap().respond();
+        context.add("fejl",
+                       &"Den indtastede kamp er ikke lovlig 😜");
+        return TERA.render("pages/newgame_fejl.html", context).respond();
     }
 
-    println!("{:?}",
-             conn.execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
-                           ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
-                          &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]));
+    let res = conn.execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
+                            ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
+                           &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
+    println!("{:?}", res);
 
     Redirect::to("/").respond()
 }
@@ -216,30 +218,41 @@ fn games() -> String {
         .map(Result::unwrap)
         .collect();
 
-    let mut context = BTreeMap::new();
+    let mut context = create_context("games");
 
-    context.insert("games".to_string(), games.to_json());
-    context.insert("heading".to_string(), "Kampe".to_json());
-    context.insert("body".to_string(), "Alle kampe".to_json());
-    context.insert("version".to_string(), VERSION.to_json());
-    HB.render("index.html", &context).unwrap()
+    context.add("games", &games);
+    TERA.render("pages/games.html", context).unwrap()
 }
 
 #[error(404)]
 fn page_not_found() -> String {
-    let mut context = BTreeMap::new();
-
-    context.insert("not_found".to_string(), "Not Found".to_json());
-    context.insert("heading".to_string(), "404 Not Found".to_json());
-    context.insert("body".to_string(), "404 Not Found".to_json());
-    context.insert("version".to_string(), VERSION.to_json());
-    HB.render("index.html", &context).unwrap()
+    TERA.render("pages/404.html", create_context("404")).unwrap()
 }
 
+use bbt::{Rater, Rating};
+
 #[derive(Debug, Clone)]
+struct SerRating(Rating);
+
+impl SerRating {
+    fn get_rating(&self) -> f64 {
+        self.0.mu() - 3. * self.0.sigma()
+    }
+}
+
+impl serde::Serialize for SerRating {
+    fn serialize<S: serde::Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+        let mut state = serializer.serialize_struct("Rating", 2)?;
+        serializer.serialize_struct_elt(&mut state, "mu", format!("{:.1}", self.0.mu()))?;
+        serializer.serialize_struct_elt(&mut state, "sigma", format!("{:.1}", self.0.sigma()))?;
+        serializer.serialize_struct_end(state)
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct Player {
     name: String,
-    rating: Rating,
+    rating: SerRating,
     kampe: u32,
     vundne: u32,
     tabte: u32,
@@ -254,7 +267,7 @@ impl Player {
     fn new<S: ToString>(name: S) -> Self {
         Player {
             name: name.to_string(),
-            rating: Rating::new(BETA, BETA / 3.0),
+            rating: SerRating(Rating::new(BETA, BETA / 3.0)),
             kampe: 0,
             vundne: 0,
             tabte: 0,
@@ -263,10 +276,10 @@ impl Player {
         }
     }
     fn duel(&mut self, rater: &Rater, o: Rating, won: bool) {
-        let a = replace(&mut self.rating, Default::default());
+        let a = replace(&mut self.rating.0, Default::default());
 
         let (a, _) = rater.duel(a, o, if won { Win } else { Loss });
-        self.rating = a;
+        self.rating.0 = a;
 
         self.kampe += 1;
         if won {
@@ -275,29 +288,6 @@ impl Player {
             self.tabte += 1;
         }
     }
-}
-
-impl ToJson for Player {
-    fn to_json(&self) -> Json {
-        let mut m: BTreeMap<String, Json> = BTreeMap::new();
-        m.insert("rating".to_string(),
-                 format!("{:.1}", self.rating.mu()).to_json());
-        m.insert("sigma".to_string(),
-                 format!("{:.1}", self.rating.sigma()).to_json());
-        m.insert("name".to_string(), self.name.to_json());
-        m.insert("kampe".to_string(), self.kampe.to_json());
-        m.insert("vundne".to_string(), self.vundne.to_json());
-        m.insert("tabte".to_string(), self.tabte.to_json());
-        m.insert("eggs".to_string(), self.eggs.to_json());
-        m.insert("aces".to_string(), self.aces.to_json());
-        m.to_json()
-    }
-}
-
-use bbt::{Rater, Rating};
-
-fn get_rating(rating: &Rating) -> f64 {
-    rating.mu() - 3. * rating.sigma()
 }
 
 struct Game {
@@ -344,8 +334,8 @@ fn rating() -> String {
         })
         .unwrap() {
         let g = g.unwrap();
-        let away_rating = players[&g.away].rating.clone();
-        let home_rating = players[&g.home].rating.clone();
+        let away_rating = players[&g.away].rating.0.clone();
+        let home_rating = players[&g.home].rating.0.clone();
 
         {
             let home_player = players.get_mut(&g.home).unwrap();
@@ -372,21 +362,17 @@ fn rating() -> String {
     }
 
     let mut ps: Vec<_> = players.values().map(Clone::clone).collect();
-    ps.sort_by(|a, b| if get_rating(&b.rating) < get_rating(&a.rating) {
+    ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
         Less
     } else {
         Greater
     });
     ps.retain(|a| a.kampe != 0);
-    ps.insert(0, Player::new("N/A"));
 
-    let mut context = BTreeMap::new();
+    let mut context = create_context("rating");
+    context.add("players", &ps);
 
-    context.insert("ps".to_string(), ps.to_json());
-    context.insert("heading".to_string(), "Stilling".to_json());
-    context.insert("body".to_string(), "Stilling".to_json());
-    context.insert("version".to_string(), VERSION.to_json());
-    HB.render("index.html", &context).unwrap()
+    TERA.render("pages/rating.html", context).unwrap()
 }
 
 #[get("/players")]
@@ -398,33 +384,18 @@ fn players() -> String {
 
     for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
         let (id, name) = p.unwrap();
-        let mut player = BTreeMap::new();
-        player.insert("id".to_string(), id.to_json());
-        player.insert("name".to_string(), name.to_json());
-        players.push(player.to_json());
+        players.push(Named{id: id, name: name});
     }
 
-    let mut context = BTreeMap::new();
+    let mut context = create_context("players");
+    context.add("players", &players);
 
-    context.insert("players".to_string(), players.to_json());
-    context.insert("heading".to_string(), "Spillere".to_json());
-    context.insert("body".to_string(), "Spillere".to_json());
-    context.insert("version".to_string(), VERSION.to_json());
-    HB.render("index.html", &context).unwrap()
+    TERA.render("pages/players.html", context).unwrap()
 }
 
 #[get("/newplayer")]
 fn newplayer() -> String {
-    HB.render("index.html", &newplayer_con()).unwrap()
-}
-
-fn newplayer_con() -> BTreeMap<String, Json> {
-    let mut context = BTreeMap::new();
-    context.insert("newplayer".to_string(), true.to_json());
-    context.insert("heading".to_string(), "Ny spiller".to_json());
-    context.insert("body".to_string(), "Ny spiller".to_json());
-    context.insert("version".to_string(), VERSION.to_json());
-    context
+    TERA.render("pages/newplayer.html", create_context("newplayer")).unwrap()
 }
 
 #[post("/newplayer/submit", data = "<f>")]
@@ -441,34 +412,20 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
             _ => (),
         }
     }
-    {
-        if secret != CONFIG.secret {
-            let mut context = newplayer_con();
-            context.insert("nyspiller_fejl".to_string(),
-                           "Det indtastede kodeord er forkert 💩".to_json());
-            context.insert("heading".to_string(), "Fejl: Ny spiller".to_json());
-            context.insert("body".to_string(),
-                           "Fejl ved registrering af ny spiller".to_json());
-            return HB.render("index.html", &context).respond();
-        }
-    }
-    if name.is_empty() {
-        let mut context = newplayer_con();
+    let mut context = create_context("newplayer");
+    if secret != CONFIG.secret {
+        context.add("fejl", &"Det indtastede kodeord er forkert 💩");
+    } else if name.is_empty() {
+        context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
+    } else {
+        let conn = Connection::open(&CONFIG.database).unwrap();
+        println!("{:?}",
+                 conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
 
-        context.insert("nyspiller_fejl".to_string(),
-                       "Den indtastede spiller er ikke lovlig 😜".to_json());
-        context.insert("heading".to_string(), "Fejl: Ny spiller".to_json());
-        context.insert("body".to_string(),
-                       "Fejl ved registrering af ny spiller".to_json());
-        return HB.render("index.html", &context).respond();
+        return Redirect::to("/").respond();
     }
-    let conn = Connection::open(&CONFIG.database).unwrap();
-    println!("{:?}",
-             conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
-
-    Redirect::to("/").respond()
+    TERA.render("pages/newplayer_fejl.html", context).respond()
 }
-
 
 fn main() {
     rocket::ignite()
