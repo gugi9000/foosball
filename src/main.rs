@@ -32,7 +32,7 @@ use bbt::{Rater, Rating};
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-const INITIAL_DATE_CAP: &'static str = "datetime('now','-90 day')";
+const INITIAL_DATE_CAP: &'static str = "now','-90 day";
 
 type Res<'a> = Result<Response<'a>, Status>;
 
@@ -94,14 +94,14 @@ fn get_games<'a>() -> Vec<Game> {
     let conn = database();
     let mut last_date = LAST_DATE.lock().unwrap();
     let mut stmt =
-        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > {}", *last_date))
+        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}')", *last_date))
             .unwrap();
 
     let gs = stmt.query_map(&[], |row| {
             let home_score = row.get::<_, i32>(2);
             let away_score = row.get::<_, i32>(3);
             // FIXME
-            *last_date = "datetime('".to_owned() + &row.get::<_, String>(4) + "')";
+            *last_date = row.get(4);
             Game {
                 home: row.get(0),
                 away: row.get(1),
