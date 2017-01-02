@@ -24,8 +24,8 @@ Stilling
   <tbody>
     {% for p in players %}
       <tr>
-        <td>{{loop.index}} <img src="/static/players/{{p.name}}.png" alt="{{p.name}}" height="{% if loop.index==1 %}40{% else %}30{% endif %}"/></td>
-        <td>{% if loop.index==1 %}<em>{{p.name}}</em>{% else %}{{p.name}}{% endif %}</td>
+        <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.index==1 %}40{% else %}30{% endif %}"/></td>
+        <td>{% if loop.index==1 %}<em>{{p.name|escape}}</em>{% else %}{{p.name|escape}}{% endif %}</td>
         <td>{{p.rating.mu}}</td>
         <td>{{p.rating.sigma}}</td>
         <td>{{p.kampe}}</td>

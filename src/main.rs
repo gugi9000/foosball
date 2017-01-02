@@ -1,4 +1,4 @@
-#![feature(plugin, custom_derive, proc_macro)]
+#![feature(plugin, custom_derive, proc_macro, conservative_impl_trait)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -18,15 +18,21 @@ extern crate serde_json;
 
 use std::path::{Path, PathBuf};
 use std::io::Read;
+use std::cmp::Ordering::{Greater, Less};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use rocket::request::{FormItems, FromFormValue, FromForm, Form};
 use rocket::response::{NamedFile, Response, Responder, Redirect};
 use rocket::http::Status;
 use rocket::Data;
 use rusqlite::Connection;
 use tera::{Tera, Context, Value};
+use rand::Rng;
+use bbt::{Rater, Rating};
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const INITIAL_DATE_CAP: &'static str = "datetime('now','-90 day')";
 
 type Res<'a> = Result<Response<'a>, Status>;
 
@@ -60,6 +66,52 @@ lazy_static! {
 
         toml::decode_str(&buf).unwrap()
     };
+    static ref RATER: Rater = Rater::new(BETA / 6.0);
+    static ref PLAYERS: Mutex<HashMap<i32, Player>> = Mutex::new(gen_players());
+    static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
+}
+
+fn gen_players() -> HashMap<i32, Player> {
+    let conn = database();
+    let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
+
+    let mut players = HashMap::new();
+
+    for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
+        let (id, name) = p.unwrap();
+        players.insert(id, Player::new(name));
+    }
+
+    players
+}
+
+fn reset_ratings() {
+    *PLAYERS.lock().unwrap() = gen_players();
+    *LAST_DATE.lock().unwrap() = INITIAL_DATE_CAP.to_owned();
+}
+
+fn get_games<'a>() -> Vec<Game> {
+    let conn = database();
+    let mut last_date = LAST_DATE.lock().unwrap();
+    let mut stmt =
+        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > {}", *last_date))
+            .unwrap();
+
+    let gs = stmt.query_map(&[], |row| {
+            let home_score = row.get::<_, i32>(2);
+            let away_score = row.get::<_, i32>(3);
+            // FIXME
+            *last_date = "datetime('".to_owned() + &row.get::<_, String>(4) + "')";
+            Game {
+                home: row.get(0),
+                away: row.get(1),
+                ace: home_score == 0 || away_score == 0,
+                home_win: home_score > away_score,
+            }
+        })
+        .unwrap()
+        .map(Result::unwrap);
+    gs.collect()
 }
 
 #[derive(Debug, Serialize)]
@@ -88,8 +140,6 @@ fn create_context(current_page: &str) -> Context {
     c.add("cur", &current_page);
     c
 }
-
-use rand::Rng;
 
 #[get("/newgame")]
 fn newgame<'a>() -> Res<'a> {
@@ -242,8 +292,6 @@ fn server_error() -> String {
     TERA.render("pages/500.html", create_context("500")).unwrap()
 }
 
-use bbt::{Rater, Rating};
-
 #[derive(Debug, Clone)]
 struct SerRating(Rating);
 
@@ -310,9 +358,6 @@ struct Game {
     home_win: bool,
 }
 
-use std::cmp::Ordering::{Greater, Less};
-use std::collections::HashMap;
-
 #[get("/")]
 fn root() -> String {
     rating()
@@ -320,39 +365,15 @@ fn root() -> String {
 
 #[get("/rating")]
 fn rating() -> String {
-    let rater = Rater::new(BETA / 6.0);
+    let mut players = PLAYERS.lock().unwrap();
 
-    let conn = database();
-    let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
-    let mut stmt2 =
-        conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games WHERE dato >= date('now','-90 day')")
-            .unwrap();
-
-    let mut players = HashMap::new();
-
-    for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
-        let (id, name) = p.unwrap();
-        players.insert(id, Player::new(name));
-    }
-
-    for g in stmt2.query_map(&[], |row| {
-            let home_score = row.get::<_, i32>(2);
-            let away_score = row.get::<_, i32>(3);
-            Game {
-                home: row.get(0),
-                away: row.get(1),
-                ace: home_score == 0 || away_score == 0,
-                home_win: home_score > away_score,
-            }
-        })
-        .unwrap() {
-        let g = g.unwrap();
+    for g in get_games() {
         let away_rating = players[&g.away].rating.0.clone();
         let home_rating = players[&g.home].rating.0.clone();
 
         {
             let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(&rater, away_rating, g.home_win);
+            home_player.duel(&RATER, away_rating, g.home_win);
             if g.ace {
                 if g.home_win {
                     home_player.aces += 1;
@@ -363,7 +384,7 @@ fn rating() -> String {
         }
         {
             let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(&rater, home_rating, !g.home_win);
+            away_player.duel(&RATER, home_rating, !g.home_win);
             if g.ace {
                 if g.home_win {
                     away_player.eggs += 1;
@@ -432,12 +453,22 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
         context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
         let conn = database();
-        println!("{:?}",
-                 conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
+        let n = conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
 
-        return Redirect::to("/").respond();
+        if n == 0 {
+            context.add("fejl", &"Den indtastede spiller eksisterer allerede 💩");
+        } else {
+            reset_ratings();
+            return Redirect::to("/").respond();
+        }
     }
     TERA.render("pages/newplayer_fejl.html", context).respond()
+}
+
+#[get("/reset/ratings")]
+fn reset() -> Redirect {
+    reset_ratings();
+    Redirect::to("/")
 }
 
 fn main() {
@@ -452,6 +483,7 @@ fn main() {
                        newplayer,
                        submit_newplayer,
                        favicon_handler,
+                       reset,
                        static_handler])
         .catch(errors![page_not_found, bad_request, server_error])
         .launch();
