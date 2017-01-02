@@ -120,7 +120,7 @@ struct PlayedGame {
     away: String,
     home_score: i32,
     away_score: i32,
-    ball: i32,
+    ball: String,
     dato: String,
 }
 
@@ -254,17 +254,16 @@ fn games() -> String {
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, dato FROM games g ORDER BY ID DESC")
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY ID DESC")
             .unwrap();
-    // TODO: join ball_id to balls.img
     let games: Vec<_> = stmt.query_map(&[], |row| {
             PlayedGame {
                 home: row.get(0),
                 away: row.get(1),
                 home_score: row.get(2),
                 away_score: row.get(3),
-                ball: row.get(4),
-                dato: row.get(5),
+                ball: row.get(5),
+                dato: row.get(6),
             }
         })
         .unwrap()

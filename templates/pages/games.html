@@ -30,7 +30,7 @@ Kampe
         <td>
             {{g.home_score | egg(person=g.home|escape)}} &ndash; {{g.away_score | egg(person=g.away|escape)}}
         </td>
-        <td><img src="/static/balls/{{g.ball}}.png" alt="{{g.ball}}"/></td>
+        <td><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball}}"/></td>
         <td>{{g.dato}}</td>
       </tr>
     {% endfor %}
