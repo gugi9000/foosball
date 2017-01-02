@@ -1,4 +1,4 @@
-#![feature(plugin, custom_derive, proc_macro)]
+#![feature(plugin, custom_derive, proc_macro, conservative_impl_trait)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -18,15 +18,23 @@ extern crate serde_json;
 
 use std::path::{Path, PathBuf};
 use std::io::Read;
+use std::cmp::Ordering::{Greater, Less};
+use std::collections::HashMap;
+use std::sync::Mutex;
 use rocket::request::{FormItems, FromFormValue, FromForm, Form};
 use rocket::response::{NamedFile, Response, Responder, Redirect};
 use rocket::http::Status;
 use rocket::Data;
 use rusqlite::Connection;
 use tera::{Tera, Context, Value};
+use rand::Rng;
+use bbt::{Rater, Rating};
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const INITIAL_DATE_CAP: &'static str = "now','-90 day";
+
+type Res<'a> = Result<Response<'a>, Status>;
 
 #[derive(Debug, RustcDecodable)]
 struct Config {
@@ -58,6 +66,52 @@ lazy_static! {
 
         toml::decode_str(&buf).unwrap()
     };
+    static ref RATER: Rater = Rater::new(BETA / 6.0);
+    static ref PLAYERS: Mutex<HashMap<i32, Player>> = Mutex::new(gen_players());
+    static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
+}
+
+fn gen_players() -> HashMap<i32, Player> {
+    let conn = database();
+    let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
+
+    let mut players = HashMap::new();
+
+    for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
+        let (id, name) = p.unwrap();
+        players.insert(id, Player::new(name));
+    }
+
+    players
+}
+
+fn reset_ratings() {
+    *PLAYERS.lock().unwrap() = gen_players();
+    *LAST_DATE.lock().unwrap() = INITIAL_DATE_CAP.to_owned();
+}
+
+fn get_games<'a>() -> Vec<Game> {
+    let conn = database();
+    let mut last_date = LAST_DATE.lock().unwrap();
+    let mut stmt =
+        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}')", *last_date))
+            .unwrap();
+
+    let gs = stmt.query_map(&[], |row| {
+            let home_score = row.get::<_, i32>(2);
+            let away_score = row.get::<_, i32>(3);
+            // FIXME
+            *last_date = row.get(4);
+            Game {
+                home: row.get(0),
+                away: row.get(1),
+                ace: home_score == 0 || away_score == 0,
+                home_win: home_score > away_score,
+            }
+        })
+        .unwrap()
+        .map(Result::unwrap);
+    gs.collect()
 }
 
 #[derive(Debug, Serialize)]
@@ -66,7 +120,8 @@ struct PlayedGame {
     away: String,
     home_score: i32,
     away_score: i32,
-    ball: i32,
+    ball: String,
+    ball_name: String,
     dato: String,
 }
 
@@ -76,6 +131,17 @@ struct Named {
     name: String
 }
 
+#[derive(Debug, Serialize)]
+struct Ball {
+    id: i32,
+    name: String,
+    img: String,
+}
+
+fn database() -> Connection {
+    Connection::open(&CONFIG.database).unwrap()
+}
+
 fn create_context(current_page: &str) -> Context {
     let mut c = Context::new();
     c.add("version", &VERSION);
@@ -83,15 +149,13 @@ fn create_context(current_page: &str) -> Context {
     c
 }
 
-use rand::Rng;
-
 #[get("/newgame")]
-fn newgame() -> String {
-    TERA.render("pages/newgame.html", newgame_con()).unwrap()
+fn newgame<'a>() -> Res<'a> {
+    TERA.render("pages/newgame.html", newgame_con()).respond()
 }
 
 fn newgame_con() -> Context {
-    let conn = Connection::open(&CONFIG.database).unwrap();
+    let conn = database();
     let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
     let mut names: Vec<_> = stmt.query_map(&[], |row| {
             Named {
@@ -105,11 +169,12 @@ fn newgame_con() -> Context {
 
     names.sort_by(|_, _| *rand::thread_rng().choose(&[Greater, Less]).unwrap());
 
-    let mut ballstmt = conn.prepare("SELECT id, name FROM balls").unwrap();
+    let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
     let balls: Vec<_> = ballstmt.query_map(&[], |row| {
-            Named {
+            Ball {
                 id: row.get(0),
-                name: row.get(1)
+                name: row.get(1),
+                img: row.get(2),
             }
         })
         .unwrap()
@@ -165,9 +230,8 @@ impl<'a> FromForm<'a> for NewGame {
 }
 
 #[post("/newgame/submit", data = "<f>")]
-fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
-    let conn = Connection::open(&CONFIG.database).unwrap();
-
+fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
+    let conn = database();
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
@@ -194,22 +258,23 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
 }
 
 #[get("/games")]
-fn games() -> String {
-    let conn = Connection::open(&CONFIG.database).unwrap();
+fn games<'a>() -> Res<'a> {
+    let conn = database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, dato FROM games g ORDER BY ID DESC")
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
+                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY ID DESC")
             .unwrap();
-    // TODO: join ball_id to balls.img
     let games: Vec<_> = stmt.query_map(&[], |row| {
             PlayedGame {
                 home: row.get(0),
                 away: row.get(1),
                 home_score: row.get(2),
                 away_score: row.get(3),
-                ball: row.get(4),
-                dato: row.get(5),
+                ball: row.get(5),
+                ball_name: row.get(6),
+                dato: row.get(7),
             }
         })
         .unwrap()
@@ -219,25 +284,23 @@ fn games() -> String {
     let mut context = create_context("games");
 
     context.add("games", &games);
-    TERA.render("pages/games.html", context).unwrap()
+    TERA.render("pages/games.html", context).respond()
 }
 
 #[error(404)]
-fn page_not_found() -> String {
-    TERA.render("pages/404.html", create_context("404")).unwrap()
+fn page_not_found<'a>() -> Res<'a> {
+    TERA.render("pages/404.html", create_context("404")).respond()
 }
 
 #[error(400)]
-fn bad_request() -> String {
-    TERA.render("pages/400.html", create_context("400")).unwrap()
+fn bad_request<'a>() -> Res<'a> {
+    TERA.render("pages/400.html", create_context("400")).respond()
 }
 
 #[error(500)]
-fn server_error() -> String {
-    TERA.render("pages/500.html", create_context("500")).unwrap()
+fn server_error<'a>() -> Res<'a> {
+    TERA.render("pages/500.html", create_context("500")).respond()
 }
-
-use bbt::{Rater, Rating};
 
 #[derive(Debug, Clone)]
 struct SerRating(Rating);
@@ -305,49 +368,22 @@ struct Game {
     home_win: bool,
 }
 
-use std::cmp::Ordering::{Greater, Less};
-use std::collections::HashMap;
-
 #[get("/")]
-fn root() -> String {
+fn root<'a>() -> Res<'a> {
     rating()
 }
 
 #[get("/rating")]
-fn rating() -> String {
-    let rater = Rater::new(BETA / 6.0);
+fn rating<'a>() -> Res<'a> {
+    let mut players = PLAYERS.lock().unwrap();
 
-    let conn = Connection::open(&CONFIG.database).unwrap();
-    let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
-    let mut stmt2 =
-        conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games WHERE dato >= date('now','-90 day')")
-            .unwrap();
-
-    let mut players = HashMap::new();
-
-    for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
-        let (id, name) = p.unwrap();
-        players.insert(id, Player::new(name));
-    }
-
-    for g in stmt2.query_map(&[], |row| {
-            let home_score = row.get::<_, i32>(2);
-            let away_score = row.get::<_, i32>(3);
-            Game {
-                home: row.get(0),
-                away: row.get(1),
-                ace: home_score == 0 || away_score == 0,
-                home_win: home_score > away_score,
-            }
-        })
-        .unwrap() {
-        let g = g.unwrap();
+    for g in get_games() {
         let away_rating = players[&g.away].rating.0.clone();
         let home_rating = players[&g.home].rating.0.clone();
 
         {
             let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(&rater, away_rating, g.home_win);
+            home_player.duel(&RATER, away_rating, g.home_win);
             if g.ace {
                 if g.home_win {
                     home_player.aces += 1;
@@ -358,7 +394,7 @@ fn rating() -> String {
         }
         {
             let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(&rater, home_rating, !g.home_win);
+            away_player.duel(&RATER, home_rating, !g.home_win);
             if g.ace {
                 if g.home_win {
                     away_player.eggs += 1;
@@ -369,7 +405,7 @@ fn rating() -> String {
         }
     }
 
-    let mut ps: Vec<_> = players.values().map(Clone::clone).collect();
+    let mut ps: Vec<_> = players.values().collect();
     ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
         Less
     } else {
@@ -380,12 +416,12 @@ fn rating() -> String {
     let mut context = create_context("rating");
     context.add("players", &ps);
 
-    TERA.render("pages/rating.html", context).unwrap()
+    TERA.render("pages/rating.html", context).respond()
 }
 
 #[get("/players")]
-fn players() -> String {
-    let conn = Connection::open(&CONFIG.database).unwrap();
+fn players<'a>() -> Res<'a> {
+    let conn = database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
     let mut players = Vec::new();
@@ -398,16 +434,16 @@ fn players() -> String {
     let mut context = create_context("players");
     context.add("players", &players);
 
-    TERA.render("pages/players.html", context).unwrap()
+    TERA.render("pages/players.html", context).respond()
 }
 
 #[get("/newplayer")]
-fn newplayer() -> String {
-    TERA.render("pages/newplayer.html", create_context("newplayer")).unwrap()
+fn newplayer<'a>() -> Res<'a> {
+    TERA.render("pages/newplayer.html", create_context("newplayer")).respond()
 }
 
 #[post("/newplayer/submit", data = "<f>")]
-fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
+fn submit_newplayer<'r>(f: Data) -> Res<'r> {
     let mut v = Vec::new();
     f.stream_to(&mut v).unwrap();
 
@@ -426,13 +462,23 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
     } else if name.is_empty() {
         context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
-        let conn = Connection::open(&CONFIG.database).unwrap();
-        println!("{:?}",
-                 conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
+        let conn = database();
+        let n = conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
 
-        return Redirect::to("/").respond();
+        if n == 0 {
+            context.add("fejl", &"Den indtastede spiller eksisterer allerede 💩");
+        } else {
+            reset_ratings();
+            return Redirect::to("/").respond();
+        }
     }
     TERA.render("pages/newplayer_fejl.html", context).respond()
+}
+
+#[get("/reset/ratings")]
+fn reset() -> Redirect {
+    reset_ratings();
+    Redirect::to("/")
 }
 
 fn main() {
@@ -447,6 +493,7 @@ fn main() {
                        newplayer,
                        submit_newplayer,
                        favicon_handler,
+                       reset,
                        static_handler])
         .catch(errors![page_not_found, bad_request, server_error])
         .launch();

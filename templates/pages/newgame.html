@@ -30,7 +30,7 @@ Ny Kamp
   <br/>
   Bold:<br/>
   {% for b in balls %}
-  <input type="radio" name="ball" value="{{b.id}}" required><img src="/static/balls/{{b.id}}.png" alt="{{b.name}}" /><br>
+  <input type="radio" name="ball" value="{{b.id}}" required><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}" /><br>
   {% endfor %}
   <br/>
   Kodeord:<br/>
