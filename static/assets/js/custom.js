@@ -1,5 +1,5 @@
 setTimeout(function () {
-  $('.alert').hide(2000, function() {
+  $('.alert-danger').hide(2000, function() {
     $(this).remove();
   });
 }, 5000);

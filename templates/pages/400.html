@@ -2,11 +2,11 @@
 {% import "macros.html" as macros %}
 
 {% block header %}
-404 File Not Found
+400 Bad Request
 {% endblock header %}
 {% block title %}
-404 File Not Found
+400 Bad Request
 {% endblock title %}
 {% block content %}
-{{macros::errorpage(error="Siden, du bad om, kunne ikke findes!")}}
+{{macros::errorpage(error="Din forespørgsel var forkert opbygget!")}}
 {% endblock content %}

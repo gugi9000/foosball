@@ -154,12 +154,12 @@ impl<'a> FromForm<'a> for NewGame {
             }
         }
         Ok(NewGame {
-            home: home.unwrap(),
-            away: away.unwrap(),
-            home_score: home_score.unwrap(),
-            away_score: away_score.unwrap(),
-            ball: ball.unwrap(),
-            secret: secret.unwrap(),
+            home: home.ok_or("no `home` found")?,
+            away: away.ok_or("no `away` found")?,
+            home_score: home_score.ok_or("no `home_score` found")?,
+            away_score: away_score.ok_or("no `away_score` found")?,
+            ball: ball.ok_or("no `ball` found")?,
+            secret: secret.ok_or("no `secret` found")?,
         })
     }
 }
@@ -225,6 +225,16 @@ fn games() -> String {
 #[error(404)]
 fn page_not_found() -> String {
     TERA.render("pages/404.html", create_context("404")).unwrap()
+}
+
+#[error(400)]
+fn bad_request() -> String {
+    TERA.render("pages/400.html", create_context("400")).unwrap()
+}
+
+#[error(500)]
+fn server_error() -> String {
+    TERA.render("pages/500.html", create_context("500")).unwrap()
 }
 
 use bbt::{Rater, Rating};
@@ -438,7 +448,7 @@ fn main() {
                        submit_newplayer,
                        favicon_handler,
                        static_handler])
-        .catch(errors![page_not_found])
+        .catch(errors![page_not_found, bad_request, server_error])
         .launch();
 }
 
