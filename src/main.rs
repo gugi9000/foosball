@@ -459,5 +459,5 @@ fn static_handler(file: PathBuf) -> Option<NamedFile> {
 
 #[get("/favicon.ico")]
 fn favicon_handler() -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/dynateam.ico")).ok()
+    static_handler(PathBuf::new().join("dynateam.ico"))
 }
