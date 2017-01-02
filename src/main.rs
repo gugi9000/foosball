@@ -221,7 +221,7 @@ impl<'a> FromForm<'a> for NewGame {
 }
 
 #[post("/newgame/submit", data = "<f>")]
-fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
+fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
     let conn = database();
     let f = f.into_inner();
 
@@ -249,7 +249,7 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
 }
 
 #[get("/games")]
-fn games() -> String {
+fn games<'a>() -> Res<'a> {
     let conn = database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -273,22 +273,22 @@ fn games() -> String {
     let mut context = create_context("games");
 
     context.add("games", &games);
-    TERA.render("pages/games.html", context).unwrap()
+    TERA.render("pages/games.html", context).respond()
 }
 
 #[error(404)]
-fn page_not_found() -> String {
-    TERA.render("pages/404.html", create_context("404")).unwrap()
+fn page_not_found<'a>() -> Res<'a> {
+    TERA.render("pages/404.html", create_context("404")).respond()
 }
 
 #[error(400)]
-fn bad_request() -> String {
-    TERA.render("pages/400.html", create_context("400")).unwrap()
+fn bad_request<'a>() -> Res<'a> {
+    TERA.render("pages/400.html", create_context("400")).respond()
 }
 
 #[error(500)]
-fn server_error() -> String {
-    TERA.render("pages/500.html", create_context("500")).unwrap()
+fn server_error<'a>() -> Res<'a> {
+    TERA.render("pages/500.html", create_context("500")).respond()
 }
 
 #[derive(Debug, Clone)]
@@ -358,12 +358,12 @@ struct Game {
 }
 
 #[get("/")]
-fn root() -> String {
+fn root<'a>() -> Res<'a> {
     rating()
 }
 
 #[get("/rating")]
-fn rating() -> String {
+fn rating<'a>() -> Res<'a> {
     let mut players = PLAYERS.lock().unwrap();
 
     for g in get_games() {
@@ -405,11 +405,11 @@ fn rating() -> String {
     let mut context = create_context("rating");
     context.add("players", &ps);
 
-    TERA.render("pages/rating.html", context).unwrap()
+    TERA.render("pages/rating.html", context).respond()
 }
 
 #[get("/players")]
-fn players() -> String {
+fn players<'a>() -> Res<'a> {
     let conn = database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
@@ -423,12 +423,12 @@ fn players() -> String {
     let mut context = create_context("players");
     context.add("players", &players);
 
-    TERA.render("pages/players.html", context).unwrap()
+    TERA.render("pages/players.html", context).respond()
 }
 
 #[get("/newplayer")]
-fn newplayer() -> String {
-    TERA.render("pages/newplayer.html", create_context("newplayer")).unwrap()
+fn newplayer<'a>() -> Res<'a> {
+    TERA.render("pages/newplayer.html", create_context("newplayer")).respond()
 }
 
 #[post("/newplayer/submit", data = "<f>")]
