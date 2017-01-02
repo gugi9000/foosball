@@ -28,6 +28,8 @@ use tera::{Tera, Context, Value};
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
+type Res<'a> = Result<Response<'a>, Status>;
+
 #[derive(Debug, RustcDecodable)]
 struct Config {
     database: String,
@@ -76,6 +78,10 @@ struct Named {
     name: String
 }
 
+fn database() -> Connection {
+    Connection::open(&CONFIG.database).unwrap()
+}
+
 fn create_context(current_page: &str) -> Context {
     let mut c = Context::new();
     c.add("version", &VERSION);
@@ -86,12 +92,12 @@ fn create_context(current_page: &str) -> Context {
 use rand::Rng;
 
 #[get("/newgame")]
-fn newgame() -> String {
-    TERA.render("pages/newgame.html", newgame_con()).unwrap()
+fn newgame<'a>() -> Res<'a> {
+    TERA.render("pages/newgame.html", newgame_con()).respond()
 }
 
 fn newgame_con() -> Context {
-    let conn = Connection::open(&CONFIG.database).unwrap();
+    let conn = database();
     let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
     let mut names: Vec<_> = stmt.query_map(&[], |row| {
             Named {
@@ -166,8 +172,7 @@ impl<'a> FromForm<'a> for NewGame {
 
 #[post("/newgame/submit", data = "<f>")]
 fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
-    let conn = Connection::open(&CONFIG.database).unwrap();
-
+    let conn = database();
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
@@ -195,7 +200,7 @@ fn submit_newgame(f: Form<NewGame>) -> Result<Response, Status> {
 
 #[get("/games")]
 fn games() -> String {
-    let conn = Connection::open(&CONFIG.database).unwrap();
+    let conn = database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
@@ -317,7 +322,7 @@ fn root() -> String {
 fn rating() -> String {
     let rater = Rater::new(BETA / 6.0);
 
-    let conn = Connection::open(&CONFIG.database).unwrap();
+    let conn = database();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut stmt2 =
         conn.prepare("SELECT home_id, away_id, home_score, away_score, dato, ball_id from games WHERE dato >= date('now','-90 day')")
@@ -369,7 +374,7 @@ fn rating() -> String {
         }
     }
 
-    let mut ps: Vec<_> = players.values().map(Clone::clone).collect();
+    let mut ps: Vec<_> = players.values().collect();
     ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
         Less
     } else {
@@ -385,7 +390,7 @@ fn rating() -> String {
 
 #[get("/players")]
 fn players() -> String {
-    let conn = Connection::open(&CONFIG.database).unwrap();
+    let conn = database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
     let mut players = Vec::new();
@@ -407,7 +412,7 @@ fn newplayer() -> String {
 }
 
 #[post("/newplayer/submit", data = "<f>")]
-fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
+fn submit_newplayer<'r>(f: Data) -> Res<'r> {
     let mut v = Vec::new();
     f.stream_to(&mut v).unwrap();
 
@@ -426,7 +431,7 @@ fn submit_newplayer<'r>(f: Data) -> Result<Response<'r>, Status> {
     } else if name.is_empty() {
         context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
-        let conn = Connection::open(&CONFIG.database).unwrap();
+        let conn = database();
         println!("{:?}",
                  conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]));
 
