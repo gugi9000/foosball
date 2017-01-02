@@ -121,6 +121,7 @@ struct PlayedGame {
     home_score: i32,
     away_score: i32,
     ball: String,
+    ball_name: String,
     dato: String,
 }
 
@@ -128,6 +129,13 @@ struct PlayedGame {
 struct Named {
     id: i32,
     name: String
+}
+
+#[derive(Debug, Serialize)]
+struct Ball {
+    id: i32,
+    name: String,
+    img: String,
 }
 
 fn database() -> Connection {
@@ -161,11 +169,12 @@ fn newgame_con() -> Context {
 
     names.sort_by(|_, _| *rand::thread_rng().choose(&[Greater, Less]).unwrap());
 
-    let mut ballstmt = conn.prepare("SELECT id, name FROM balls").unwrap();
+    let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
     let balls: Vec<_> = ballstmt.query_map(&[], |row| {
-            Named {
+            Ball {
                 id: row.get(0),
-                name: row.get(1)
+                name: row.get(1),
+                img: row.get(2),
             }
         })
         .unwrap()
@@ -254,7 +263,8 @@ fn games<'a>() -> Res<'a> {
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY ID DESC")
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
+                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[], |row| {
             PlayedGame {
@@ -263,7 +273,8 @@ fn games<'a>() -> Res<'a> {
                 home_score: row.get(2),
                 away_score: row.get(3),
                 ball: row.get(5),
-                dato: row.get(6),
+                ball_name: row.get(6),
+                dato: row.get(7),
             }
         })
         .unwrap()
