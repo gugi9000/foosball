@@ -17,7 +17,6 @@ Spillere
     <tr>
       <th>&nbsp;</th>
       <th>Spiller</th>
-      <th>Oprettet</th>
       <th>Seneste kamp</th>
     </tr>
   </thead>
@@ -25,7 +24,7 @@ Spillere
     {% for p in players %}
       <tr>
         <td>{{p.id}}</td>
-        <td>{{p.name | escape}}</td>
+        <td><a href="/player/{{p.id}}">{{p.name | escape}}</a></td>
         <td>-</td>
         <td>-</td>
       </tr>

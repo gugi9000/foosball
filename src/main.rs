@@ -437,6 +437,38 @@ fn players<'a>() -> Res<'a> {
     TERA.render("pages/players.html", context).respond()
 }
 
+#[get("/player/<id>")]
+fn player<'a>(id:i32) -> Res<'a> {
+    let conn = database();
+    let mut stmt =
+        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
+                      (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
+                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g \
+                      where (home_id = ?1) or (away_id=?1) ORDER BY ID DESC")
+            .unwrap();
+    let games: Vec<_> = stmt.query_map(&[&id], |row| {
+            PlayedGame {
+                home: row.get(0),
+                away: row.get(1),
+                home_score: row.get(2),
+                away_score: row.get(3),
+                ball: row.get(5),
+                ball_name: row.get(6),
+                dato: row.get(7),
+            }
+        })
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+
+    let mut context = create_context("player");
+
+    context.add("games", &games);
+    context.add("name", &id);
+    TERA.render("pages/player.html", context).respond()
+} 
+
 #[get("/newplayer")]
 fn newplayer<'a>() -> Res<'a> {
     TERA.render("pages/newplayer.html", create_context("newplayer")).respond()
@@ -489,6 +521,7 @@ fn main() {
                        games,
                        newgame,
                        players,
+                       player,
                        submit_newgame,
                        newplayer,
                        submit_newplayer,
