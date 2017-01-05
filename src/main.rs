@@ -437,17 +437,17 @@ fn players<'a>() -> Res<'a> {
     TERA.render("pages/players.html", context).respond()
 }
 
-#[get("/player/<id>")]
-fn player<'a>(id:i32) -> Res<'a> {
+#[get("/player/<name>")]
+fn player<'a>(name:String) -> Res<'a> {
     let conn = database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g \
-                      where (home_id = ?1) or (away_id=?1) ORDER BY ID DESC")
+                      where (home = ?1) or (away = ?1) ORDER BY ID DESC")
             .unwrap();
-    let games: Vec<_> = stmt.query_map(&[&id], |row| {
+    let games: Vec<_> = stmt.query_map(&[&name], |row| {
             PlayedGame {
                 home: row.get(0),
                 away: row.get(1),
@@ -461,11 +461,15 @@ fn player<'a>(id:i32) -> Res<'a> {
         .unwrap()
         .map(Result::unwrap)
         .collect();
-
+    
+    //let name: String = conn.query_row("SELECT name from players WHERE id = ?1", &[&id], |row| row.get(0)).unwrap();
     let mut context = create_context("player");
-
+         // TODO handle players that don't exist
+    if games.len() != 0 {
+        println!("Ukendt spiller: {}",name);
+    }
     context.add("games", &games);
-    context.add("name", &id);
+    context.add("name", &name);
     TERA.render("pages/player.html", context).respond()
 } 
 

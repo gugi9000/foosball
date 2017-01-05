@@ -16,16 +16,15 @@ Spillere
   <thead>
     <tr>
       <th>&nbsp;</th>
-      <th>Spiller</th>
-      <th>Seneste kamp</th>
+      <th>Navn</th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
     {% for p in players %}
       <tr>
-        <td>{{p.id}}</td>
-        <td><a href="/player/{{p.id}}">{{p.name | escape}}</a></td>
-        <td>-</td>
+        <td><img src="/static/players/{{p.name|urlencode}}.png" height="100" alt="{{p.name}}"}</td>
+        <td><a href="/player/{{p.name}}">{{p.name | escape}}</a></td>
         <td>-</td>
       </tr>
     {% endfor %}
