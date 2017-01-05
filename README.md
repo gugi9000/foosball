@@ -12,7 +12,6 @@ It seems more far when not everyone has time to play as
 often as others. Also those who have a good streak still
 cannot rest on their laurels.
 
-## Release planned for January 1
 We are currently testing the software in-house with a lot
 of games. Figuring out what makes sense and what doesn't.
 
