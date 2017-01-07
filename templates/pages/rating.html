@@ -28,7 +28,7 @@ Stilling
         <td><strong>{{p.rating.mu}}±{{p.rating.sigma}}<strong></td>
         <td>{{p.kampe}}</td>
         <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
-        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte}} %">{{p.tabte}}</abbr></td>
+        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte| round}} %">{{p.tabte}}</abbr></td>
         <td>
           {% if p.aces %} {{p.aces}} 🏆 {% endif %}
           {% if p.eggs %} {{p.eggs}} <img style="height: 16px"src="/static/egg.png" alt="🍆"> {% endif %}

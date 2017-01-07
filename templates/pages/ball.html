@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block header %}
-{{name}}
+{{ball}}
 {% endblock header %}
 {% block title %}
-{{name}}
+{{ball}}
 {% endblock title %}
 {% block content %}
 <p>
@@ -30,7 +30,7 @@
         <td>
             {{g.home_score | egg(person=g.home|escape)}} &ndash; {{g.away_score | egg(person=g.away|escape)}}
         </td>
-        <td><a href="/ball/{{g.ball_name}}"><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></a></td>
+        <td><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></td>
         <td>{{g.dato}}</td>
       </tr>
     {% endfor %}

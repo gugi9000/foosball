@@ -25,12 +25,12 @@ Kampe
   <tbody>
     {% for g in games %}
       <tr>
-        <td>{{g.home | escape}}</td>
-        <td>{{g.away | escape}}</td>
+        <td><a href="/player/{{g.home}}">{{g.home | escape}}</a></td>
+        <td><a href="/player/{{g.away}}">{{g.away | escape}}</a></td>
         <td>
             {{g.home_score | egg(person=g.home|escape)}} &ndash; {{g.away_score | egg(person=g.away|escape)}}
         </td>
-        <td><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></td>
+        <td><a href="/ball/{{g.ball_name}}"><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></a></td>
         <td>{{g.dato}}</td>
       </tr>
     {% endfor %}
