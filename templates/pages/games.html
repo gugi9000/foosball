@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block header %}
 Alle Kampe
@@ -8,9 +9,7 @@ Kampe
 {% endblock title %}
 {% block content %}
 <p>
-<a href="/newgame">
-<button type="button" class="btn btn-default">Ny kamp</button>
-</a>
+{{macros::newgame()}}
 </p>
 <table class="table table-striped">
   <thead>

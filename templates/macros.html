@@ -4,3 +4,21 @@
     {{error}}
   </p>
 {% endmacro errorpage %}
+
+{% macro newgame() %}
+<a href="/newgame">
+<button type="button" class="btn btn-default">Nyt spil</button>
+</a>
+{% endmacro newgame %}
+
+{% macro newplayer() %}
+<a href="/newplayer">
+<button type="button" class="btn btn-default">Ny spiller</button>
+</a>
+{% endmacro newplayer %}
+
+{% macro newball() %}
+<a href="/newball">
+<button type="button" class="btn btn-default">Ny bold</button>
+</a>
+{% endmacro newball %}

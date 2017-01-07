@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block header %}
 Spillere
@@ -8,9 +9,7 @@ Spillere
 {% endblock title %}
 {% block content %}
 <p>
-<a href="/newplayer">
-<button type="button" class="btn btn-default">Ny spiller</button>
-</a>
+{{macros::newplayer()}}
 </p>
 <table class="table table-striped">
   <thead>

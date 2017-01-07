@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block header %}
 Stilling
@@ -25,7 +26,7 @@ Stilling
       <tr>
         <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
         <td><a href="/player/{{p.name}}">{% if loop.first %}{{p.name|escape}}{% else %}{{p.name|escape}}{% endif %}</a></td>
-        <td><strong>{{p.rating.mu}}±{{p.rating.sigma}}<strong></td>
+        <td><strong>{{p.rating.mu}}±{{p.rating.sigma}}</strong></td>
         <td>{{p.kampe}}</td>
         <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
         <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte| round}} %">{{p.tabte}}</abbr></td>
@@ -38,9 +39,7 @@ Stilling
   </tbody>
 </table>
 <p>
-<a href="/newgame">
-<button type="button" class="btn btn-default">Ny kamp</button>
-</a>
+{{macros::newgame()}}
 </p>
 <p><label for="auto-refresh">Auto-refresh: <input type="checkbox" id="auto-refresh" checked></label></p>
 {% endblock content %}

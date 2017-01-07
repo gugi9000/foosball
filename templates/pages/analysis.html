@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as macros %}
 
 {% block header %}
 Analyse
@@ -8,9 +9,7 @@ Analyse
 {% endblock title %}
 {% block content %}
 <p>
-<a href="/newgame">
-<button type="button" class="btn btn-default">Nyt spil</button>
-</a>
+{{macros::newgame()}}
 </p>
 <p>Vælg en type analyse:</p>
 <dl>
