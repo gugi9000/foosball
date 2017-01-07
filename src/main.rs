@@ -16,6 +16,7 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::io::Read;
 use std::cmp::Ordering::{Greater, Less};
@@ -69,10 +70,23 @@ lazy_static! {
     static ref RATER: Rater = Rater::new(BETA / 6.0);
     static ref PLAYERS: Mutex<HashMap<i32, Player>> = Mutex::new(gen_players());
     static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
+    // Has to be a `Mutex` because `Connection` isn't `Sync`
+    static ref DB_CONNECTION: Mutex<Connection> = Mutex::new({
+        let exists = match File::open(&CONFIG.database) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        let conn = Connection::open(&CONFIG.database).unwrap();
+        if !exists {
+            println!("Database didn't exist... creating one");
+            conn.execute_batch(include_str!("ratings.schema")).unwrap();
+        }
+        conn
+    });
 }
 
 fn gen_players() -> HashMap<i32, Player> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
 
     let mut players = HashMap::new();
@@ -91,7 +105,7 @@ fn reset_ratings() {
 }
 
 fn get_games<'a>() -> Vec<Game> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut last_date = LAST_DATE.lock().unwrap();
     let mut stmt =
         conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}')", *last_date))
@@ -138,10 +152,6 @@ struct Ball {
     img: String,
 }
 
-fn database() -> Connection {
-    Connection::open(&CONFIG.database).unwrap()
-}
-
 fn create_context(current_page: &str) -> Context {
     let mut c = Context::new();
     c.add("version", &VERSION);
@@ -155,7 +165,7 @@ fn newgame<'a>() -> Res<'a> {
 }
 
 fn newgame_con() -> Context {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
     let mut names: Vec<_> = stmt.query_map(&[], |row| {
             Named {
@@ -231,7 +241,7 @@ impl<'a> FromForm<'a> for NewGame {
 
 #[post("/newgame/submit", data = "<f>")]
 fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
@@ -259,7 +269,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
 
 #[get("/games")]
 fn games<'a>() -> Res<'a> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
@@ -421,7 +431,7 @@ fn rating<'a>() -> Res<'a> {
 
 #[get("/balls")]
 fn balls<'a>() -> Res<'a> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
 
     let mut balls = Vec::new();
@@ -439,7 +449,7 @@ fn balls<'a>() -> Res<'a> {
 
 #[get("/ball/<ball>")]
 fn ball<'a>(ball:String) -> Res<'a> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt =
         conn.prepare("SELECT \
             (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -465,7 +475,7 @@ fn ball<'a>(ball:String) -> Res<'a> {
         .unwrap()
         .map(Result::unwrap)
         .collect();
-    
+
     let mut context = create_context("ball");
          // TODO handle players that don't exist
     if games.len() != 0 {
@@ -474,12 +484,12 @@ fn ball<'a>(ball:String) -> Res<'a> {
     context.add("games", &games);
     context.add("ball", &ball);
     TERA.render("pages/ball.html", context).respond()
-} 
+}
 
 
 #[get("/players")]
 fn players<'a>() -> Res<'a> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
     let mut players = Vec::new();
@@ -497,7 +507,7 @@ fn players<'a>() -> Res<'a> {
 
 #[get("/player/<name>")]
 fn player<'a>(name:String) -> Res<'a> {
-    let conn = database();
+    let conn = DB_CONNECTION.lock().unwrap();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
@@ -519,7 +529,7 @@ fn player<'a>(name:String) -> Res<'a> {
         .unwrap()
         .map(Result::unwrap)
         .collect();
-    
+
     //let name: String = conn.query_row("SELECT name from players WHERE id = ?1", &[&id], |row| row.get(0)).unwrap();
     let mut context = create_context("player");
          // TODO handle players that don't exist
@@ -529,7 +539,7 @@ fn player<'a>(name:String) -> Res<'a> {
     context.add("games", &games);
     context.add("name", &name);
     TERA.render("pages/player.html", context).respond()
-} 
+}
 
 #[get("/newplayer")]
 fn newplayer<'a>() -> Res<'a> {
@@ -556,7 +566,7 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
     } else if name.is_empty() {
         context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
-        let conn = database();
+        let conn = DB_CONNECTION.lock().unwrap();
         let n = conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
 
         if n == 0 {
