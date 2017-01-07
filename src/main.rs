@@ -344,6 +344,7 @@ impl Player {
             tabte: 0,
             eggs: 0,
             aces: 0,
+
         }
     }
     fn duel(&mut self, rater: &Rater, o: Rating, won: bool) {
@@ -412,7 +413,6 @@ fn rating<'a>() -> Res<'a> {
         Greater
     });
     ps.retain(|a| a.kampe != 0);
-
     let mut context = create_context("rating");
     context.add("players", &ps);
 

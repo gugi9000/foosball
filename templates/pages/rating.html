@@ -13,8 +13,7 @@ Stilling
     <tr>
       <th>Placering</th>
       <th>Navn</th>
-      <th>Rating (µ)</th>
-      <th>Sigma (σ)</th>
+      <th>Rating (µ±σ) </th>
       <th>Kampe</th>
       <th>Vundne</th>
       <th>Tabte</th>
@@ -24,21 +23,18 @@ Stilling
   <tbody>
     {% for p in players %}
       <tr>
-        <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" 
-          alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
-        <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>
-          {% else %}{{p.name|escape}}{% endif %}</a></td>
-        <td>{{p.rating.mu}}</td>
-        <td>{{p.rating.sigma}}</td>
+        <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
+        <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>{% else %}{{p.name|escape}}{% endif %}</a></td>
+        <td><strong>{{p.rating.mu}}±{{p.rating.sigma}}<strong></td>
         <td>{{p.kampe}}</td>
-        <td>{{p.vundne}}</td>
-        <td>{{p.tabte}}</td>
+        <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
+        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte}} %">{{p.tabte}}</abbr></td>
         <td>
           {% if p.aces %} {{p.aces}} 🏆 {% endif %}
           {% if p.eggs %} {{p.eggs}} <img style="height: 16px"src="/static/egg.png" alt="🍆"> {% endif %}
         </td>
       </tr>
-    {% endfor %}
+      {% endfor %}
   </tbody>
 </table>
 <p>
