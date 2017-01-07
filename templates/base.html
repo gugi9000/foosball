@@ -8,7 +8,7 @@
     <meta name="description" content="foosball rating system based on Elo, Glicko and TrueSkill">
     <meta name="author" content="Bjarke Sørensen">
     <link rel="icon" href="/static/dynateam.ico" type="image/x-icon" />
-    <title>Foosball League: {% block title %}{% endblock title %}</title>
+    <title>{{league}}: {% block title %}{% endblock title %}</title>
         <!-- Bootstrap core CSS -->
         <link href="/static/dist/css/bootstrap.min.css" rel="stylesheet">
         <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -36,7 +36,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
               </button>
-              <a class="navbar-brand" href="/">Dynateam Foosball &beta;</a>
+              <a class="navbar-brand" href="/">{{league}}</a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
               <ul class="nav navbar-nav navbar-right">

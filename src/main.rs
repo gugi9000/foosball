@@ -65,8 +65,18 @@ lazy_static! {
         tera
     };
     pub static ref CONFIG: Config = {
+        let mut file = match std::fs::File::open("Foosball.toml") {
+            Ok(f) => f,
+            Err(e) => {
+                let code = e.raw_os_error().unwrap_or(1);
+                drop(e);
+                println!("Couldn't open 'Foosball.toml'. Perhaps you didn't create one.\n\
+                          Look at 'Foosball.toml.sample' for an example.");
+                std::process::exit(code);
+            }
+        };
+
         let mut buf = String::new();
-        let mut file = std::fs::File::open("Foosball.toml").unwrap();
         file.read_to_string(&mut buf).unwrap();
 
         toml::decode_str(&buf).unwrap()
@@ -156,6 +166,7 @@ struct Ball {
 pub fn create_context(current_page: &str) -> Context {
     let mut c = Context::new();
     c.add("version", &VERSION);
+    c.add("league", &CONFIG.title);
     c.add("cur", &current_page);
     c
 }
@@ -290,6 +301,7 @@ fn analysis<'a>() -> Res<'a> {
 
 fn main() {
     use errors::*;
+    &*CONFIG;
     rocket::ignite()
         .mount("/",
                routes![root,
