@@ -1,5 +1,6 @@
 use ::*;
 use rand::Rng;
+use rocket::response::Responder;
 
 #[get("/newgame")]
 fn newgame<'a>() -> Res<'a> {

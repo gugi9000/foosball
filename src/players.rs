@@ -1,4 +1,5 @@
 use ::*;
+use rocket::response::Responder;
 
 #[get("/players")]
 fn players<'a>() -> Res<'a> {

@@ -1,4 +1,5 @@
 use ::*;
+use rocket::response::Responder;
 
 #[get("/balls")]
 fn balls<'a>() -> Res<'a> {

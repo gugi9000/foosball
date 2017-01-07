@@ -1,4 +1,5 @@
 use ::*;
+use rocket::response::Responder;
 
 #[error(404)]
 fn page_not_found<'a>() -> Res<'a> {

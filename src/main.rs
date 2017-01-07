@@ -23,7 +23,7 @@ use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use rocket::request::{FormItems, FromFormValue, FromForm, Form};
-use rocket::response::{NamedFile, Response, Responder, Redirect};
+use rocket::response::{NamedFile, Response, Redirect};
 use rocket::http::Status;
 use rocket::Data;
 use rusqlite::Connection;
@@ -34,6 +34,9 @@ mod balls;
 mod errors;
 mod games;
 mod players;
+mod statics;
+mod ratings;
+mod analysis;
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -238,76 +241,14 @@ struct Game {
     home_win: bool,
 }
 
-#[get("/")]
-fn root<'a>() -> Res<'a> {
-    rating()
-}
-
-#[get("/rating")]
-fn rating<'a>() -> Res<'a> {
-    let mut players = PLAYERS.lock().unwrap();
-
-    for g in get_games() {
-        let away_rating = players[&g.away].rating.0.clone();
-        let home_rating = players[&g.home].rating.0.clone();
-
-        {
-            let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(&RATER, away_rating, g.home_win);
-            if g.ace {
-                if g.home_win {
-                    home_player.aces += 1;
-                } else {
-                    home_player.eggs += 1;
-                }
-            }
-        }
-        {
-            let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(&RATER, home_rating, !g.home_win);
-            if g.ace {
-                if g.home_win {
-                    away_player.eggs += 1;
-                } else {
-                    away_player.aces += 1;
-                }
-            }
-        }
-    }
-
-    let mut ps: Vec<_> = players.values().collect();
-    ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
-        Less
-    } else {
-        Greater
-    });
-    ps.retain(|a| a.kampe != 0);
-    let mut context = create_context("rating");
-    context.add("players", &ps);
-
-    TERA.render("pages/rating.html", context).respond()
-}
-
-#[get("/reset/ratings")]
-fn reset() -> Redirect {
-    reset_ratings();
-    Redirect::to("/")
-}
-
-#[get("/analysis")]
-fn analysis<'a>() -> Res<'a> {
-    TERA.render("pages/analysis.html", create_context("analysis")).respond()
-}
-
 fn main() {
     use errors::*;
     &*CONFIG;
     rocket::ignite()
         .mount("/",
-               routes![root,
-                       analysis,
-                       favicon_handler,
-                       reset,
+               routes![analysis::analysis,
+                       ratings::root,
+                       statics::favicon_handler,
                        games::games,
                        games::newgame,
                        games::submit_newgame,
@@ -317,18 +258,9 @@ fn main() {
                        players::player,
                        players::newplayer,
                        players::submit_newplayer,
-                       rating,
-                       static_handler])
+                       ratings::reset,
+                       ratings::rating,
+                       statics::static_handler])
         .catch(errors![page_not_found, bad_request, server_error])
         .launch();
-}
-
-#[get("/static/<file..>")]
-fn static_handler(file: PathBuf) -> Option<NamedFile> {
-    NamedFile::open(Path::new("static/").join(file)).ok()
-}
-
-#[get("/favicon.ico")]
-fn favicon_handler() -> Option<NamedFile> {
-    static_handler(PathBuf::new().join("dynateam.ico"))
 }
