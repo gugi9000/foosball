@@ -18,8 +18,8 @@ of games. Figuring out what makes sense and what doesn't.
 Ease of use and a nice layout ensures that all games get tracked.
 
 ## todo
-See (open issues: label: bugs)[https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Abug]
+See [open issues: label: bugs](https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
 ## ideas
-See (open issues: label: enhancements)[https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement]
+See [open issues: label: enhancements](https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
 
