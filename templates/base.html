@@ -9,21 +9,15 @@
     <meta name="author" content="Bjarke Sørensen">
     <link rel="icon" href="/static/dynateam.ico" type="image/x-icon" />
     <title>Foosball League: {% block title %}{% endblock title %}</title>
-
-
         <!-- Bootstrap core CSS -->
         <link href="/static/dist/css/bootstrap.min.css" rel="stylesheet">
-
         <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
         <link href="/static/assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
-
         <!-- Custom styles for this template -->
         <link href="/static/dashboard.css" rel="stylesheet">
-
         <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
         <!--[if lt IE 9]><script src="/static/assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
         <script src="/static/assets/js/ie-emulation-modes-warning.js"></script>
-
         <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
         <!--[if lt IE 9]>
           <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -33,7 +27,6 @@
   </head>
 
   <body>
-
         <nav class="navbar navbar-inverse navbar-fixed-top">
           <div class="container-fluid">
             <div class="navbar-header">
@@ -64,7 +57,7 @@
               <ul class="nav nav-sidebar">
                 <li {% if cur == "rating" %}class="active"{% endif %}><a href="/">Stilling</a></li>
                 <li {% if cur == "games" %}class="active"{% endif %}><a href="/games">Kampe</a></li>
-                <!-- li><a href="#">Analyse</a></li-->
+                <li {% if cur == "analysis" %}class="active"{% endif %}><a href="/analysis">Analyse</a></li>
               </ul>
               <ul class="nav nav-sidebar">
                 <li {% if cur == "newgame" %}class="active"{% endif %}><a href="/newgame">Ny kamp</a></li>

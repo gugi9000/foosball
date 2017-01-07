@@ -132,14 +132,6 @@ struct Named {
 }
 
 #[derive(Debug, Serialize)]
-struct Balls {
-    id: i32,
-    name: String,
-    img: String
-}
-
-
-#[derive(Debug, Serialize)]
 struct Ball {
     id: i32,
     name: String,
@@ -583,6 +575,11 @@ fn reset() -> Redirect {
     Redirect::to("/")
 }
 
+#[get("/analysis")]
+fn analysis<'a>() -> Res<'a> {
+    TERA.render("pages/analysis.html", create_context("analysis")).respond()
+}
+
 fn main() {
     rocket::ignite()
         .mount("/",
@@ -592,6 +589,7 @@ fn main() {
                        newgame,
                        balls,
                        ball,
+                       analysis,
                        players,
                        player,
                        submit_newgame,
