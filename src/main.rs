@@ -155,6 +155,7 @@ struct Ball {
 fn create_context(current_page: &str) -> Context {
     let mut c = Context::new();
     c.add("version", &VERSION);
+    c.add("league", &CONFIG.title);
     c.add("cur", &current_page);
     c
 }
