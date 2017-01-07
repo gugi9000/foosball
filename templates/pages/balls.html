@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block header %}
+Bolde
+{% endblock header %}
+{% block title %}
+Bolde
+{% endblock title %}
+{% block content %}
+<p>
+<!-- a href="/newball">
+<button type="button" class="btn btn-default">Ny spiller</button>
+</a-->
+</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>&nbsp;</th>
+      <th>Boldens navn</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ball in balls %}
+      <tr>
+        <td><img src="/static/balls/{{ball.img}}.png" alt="{{ball.name}}"}</td>
+        <td><a href="/ball/{{ball.name}}">{{ball.name | escape}}</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}

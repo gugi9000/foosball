@@ -132,6 +132,14 @@ struct Named {
 }
 
 #[derive(Debug, Serialize)]
+struct Balls {
+    id: i32,
+    name: String,
+    img: String
+}
+
+
+#[derive(Debug, Serialize)]
 struct Ball {
     id: i32,
     name: String,
@@ -419,6 +427,24 @@ fn rating<'a>() -> Res<'a> {
     TERA.render("pages/rating.html", context).respond()
 }
 
+#[get("/balls")]
+fn balls<'a>() -> Res<'a> {
+    let conn = database();
+    let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
+
+    let mut balls = Vec::new();
+
+    for ball in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1), row.get::<_, String>(2))).unwrap() {
+        let (id, name, img) = ball.unwrap();
+        balls.push(Ball{id: id, name: name, img: img});
+    }
+
+    let mut context = create_context("balls");
+    context.add("balls", &balls);
+
+    TERA.render("pages/balls.html", context).respond()
+}
+
 #[get("/ball/<ball>")]
 fn ball<'a>(ball:String) -> Res<'a> {
     let conn = database();
@@ -564,6 +590,7 @@ fn main() {
                        rating,
                        games,
                        newgame,
+                       balls,
                        ball,
                        players,
                        player,
