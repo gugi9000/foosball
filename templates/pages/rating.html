@@ -24,7 +24,7 @@ Stilling
     {% for p in players %}
       <tr>
         <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
-        <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>{% else %}{{p.name|escape}}{% endif %}</a></td>
+        <td><a href="/player/{{p.name}}">{% if loop.first %}{{p.name|escape}}{% else %}{{p.name|escape}}{% endif %}</a></td>
         <td><strong>{{p.rating.mu}}±{{p.rating.sigma}}<strong></td>
         <td>{{p.kampe}}</td>
         <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
