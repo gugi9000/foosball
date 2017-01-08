@@ -100,6 +100,12 @@ lazy_static! {
         }
         conn
     });
+    static ref BASE_CONTEXT: Context = {
+        let mut c = Context::new();
+        c.add("version", &VERSION);
+        c.add("league", &CONFIG.title);
+        c
+    };
 }
 
 fn gen_players() -> HashMap<i32, Player> {
@@ -167,9 +173,7 @@ struct Ball {
 }
 
 pub fn create_context(current_page: &str) -> Context {
-    let mut c = Context::new();
-    c.add("version", &VERSION);
-    c.add("league", &CONFIG.title);
+    let mut c = BASE_CONTEXT.clone();
     c.add("cur", &current_page);
     c
 }
