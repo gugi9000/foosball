@@ -1,4 +1,4 @@
-#![feature(plugin, custom_derive, proc_macro, conservative_impl_trait)]
+#![feature(plugin, custom_derive, conservative_impl_trait)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
