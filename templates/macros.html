@@ -5,20 +5,20 @@
   </p>
 {% endmacro errorpage %}
 
-{% macro newgame() %}
-<a href="/newgame">
-<button type="button" class="btn btn-default">Nyt spil</button>
+{% macro btn(link, txt) %}
+<a href="{{link}}">
+<button type="button" class="btn btn-default">{{txt}}</button>
 </a>
+{% endmacro btn %}
+
+{% macro newgame() %}
+{{self::btn(link="/newgame", txt="Nyt spil")}}
 {% endmacro newgame %}
 
 {% macro newplayer() %}
-<a href="/newplayer">
-<button type="button" class="btn btn-default">Ny spiller</button>
-</a>
+{{self::btn(link="/newplayer", txt="Ny spiller")}}
 {% endmacro newplayer %}
 
 {% macro newball() %}
-<a href="/newball">
-<button type="button" class="btn btn-default">Ny bold</button>
-</a>
+{{self::btn(link="/newball", txt="Ny bold")}}
 {% endmacro newball %}
