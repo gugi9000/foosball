@@ -16,7 +16,7 @@ fn rating<'a>() -> Res<'a> {
 
         {
             let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(&RATER, away_rating, g.home_win);
+            home_player.duel(away_rating, g.home_win);
             if g.ace {
                 if g.home_win {
                     home_player.aces += 1;
@@ -27,7 +27,7 @@ fn rating<'a>() -> Res<'a> {
         }
         {
             let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(&RATER, home_rating, !g.home_win);
+            away_player.duel(home_rating, !g.home_win);
             if g.ace {
                 if g.home_win {
                     away_player.eggs += 1;

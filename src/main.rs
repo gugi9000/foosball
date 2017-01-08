@@ -84,7 +84,7 @@ lazy_static! {
 
         toml::decode_str(&buf).unwrap()
     };
-    pub static ref RATER: Rater = Rater::new(BETA / 6.0);
+    static ref RATER: Rater = Rater::new(BETA / 6.0);
     pub static ref PLAYERS: Mutex<HashMap<i32, Player>> = Mutex::new(gen_players());
     pub static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
     // Has to be a `Mutex` because `Connection` isn't `Sync`
@@ -223,10 +223,10 @@ impl Player {
 
         }
     }
-    fn duel(&mut self, rater: &Rater, o: Rating, won: bool) {
+    fn duel(&mut self, o: Rating, won: bool) {
         let a = replace(&mut self.rating.0, Default::default());
 
-        let (a, _) = rater.duel(a, o, if won { Win } else { Loss });
+        let (a, _) = RATER.duel(a, o, if won { Win } else { Loss });
         self.rating.0 = a;
 
         self.kampe += 1;
