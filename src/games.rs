@@ -55,7 +55,6 @@ fromform_struct!{
 
 #[post("/newgame/submit", data = "<f>")]
 fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
-    let conn = DB_CONNECTION.lock().unwrap();
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
@@ -73,7 +72,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
         return TERA.render("pages/newgame_fejl.html", context).respond();
     }
 
-    let res = conn.execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
+    let res = DB_CONNECTION.lock().unwrap().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
                             ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
                            &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
     println!("{:?}", res);
