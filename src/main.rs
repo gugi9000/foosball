@@ -30,6 +30,31 @@ use rusqlite::Connection;
 use tera::{Tera, Context, Value};
 use bbt::{Rater, Rating};
 
+macro_rules! fromform_struct {
+    (struct $strct:ident {
+        $($field:ident: $ftype:ty,)*
+    }) => (
+        struct $strct {
+            $($field: $ftype,)*
+        }
+        impl<'a> FromForm<'a> for $strct {
+            type Error = &'a str;
+            fn from_form_string(form_string: &'a str) -> Result<Self, Self::Error> {
+                $(let mut $field = FromFormValue::default();)*
+                for (k, v) in FormItems(form_string) {
+                    match k {
+                        $(stringify!($field) => $field = Some(<$ftype>::from_form_value(v)?),)*
+                        _ => ()
+                    }
+                }
+                Ok($strct {
+                    $($field: $field.ok_or(concat!("no `", stringify!($field), "` found"))?),*
+                })
+            }
+        }
+    );
+}
+
 mod balls;
 mod errors;
 mod games;

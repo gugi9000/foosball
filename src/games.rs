@@ -42,43 +42,14 @@ fn newgame_con() -> Context {
     context
 }
 
-struct NewGame {
-    home: i32,
-    away: i32,
-    home_score: i32,
-    away_score: i32,
-    ball: i32,
-    secret: String,
-}
-
-impl<'a> FromForm<'a> for NewGame {
-    type Error = &'a str;
-    fn from_form_string(form_string: &'a str) -> Result<Self, Self::Error> {
-        let mut home = FromFormValue::default();
-        let mut away = FromFormValue::default();
-        let mut home_score = FromFormValue::default();
-        let mut away_score = FromFormValue::default();
-        let mut ball = FromFormValue::default();
-        let mut secret = FromFormValue::default();
-        for (k, v) in FormItems(form_string) {
-            match k {
-                "home" => home = Some(i32::from_form_value(v)?),
-                "away" => away = Some(i32::from_form_value(v)?),
-                "home_score" => home_score = Some(i32::from_form_value(v)?),
-                "away_score" => away_score = Some(i32::from_form_value(v)?),
-                "ball" => ball = Some(i32::from_form_value(v)?),
-                "secret" => secret = Some(String::from_form_value(v)?),
-                _ => (),
-            }
-        }
-        Ok(NewGame {
-            home: home.ok_or("no `home` found")?,
-            away: away.ok_or("no `away` found")?,
-            home_score: home_score.ok_or("no `home_score` found")?,
-            away_score: away_score.ok_or("no `away_score` found")?,
-            ball: ball.ok_or("no `ball` found")?,
-            secret: secret.ok_or("no `secret` found")?,
-        })
+fromform_struct!{
+    struct NewGame {
+        home: i32,
+        away: i32,
+        home_score: i32,
+        away_score: i32,
+        ball: i32,
+        secret: String,
     }
 }
 
