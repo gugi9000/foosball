@@ -3,7 +3,7 @@ use rocket::response::Responder;
 
 #[get("/balls")]
 fn balls<'a>() -> Res<'a> {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
 
     let mut balls = Vec::new();
@@ -21,7 +21,7 @@ fn balls<'a>() -> Res<'a> {
 
 #[get("/ball/<ball>")]
 fn ball<'a>(ball:String) -> Res<'a> {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
             (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \

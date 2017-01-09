@@ -21,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::io::Read;
 use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use rocket::request::{FormItems, FromFormValue, FromForm, Form};
 use rocket::response::{NamedFile, Response, Redirect};
 use rocket::http::Status;
@@ -133,8 +133,12 @@ lazy_static! {
     };
 }
 
+pub fn lock_database() -> MutexGuard<'static, Connection> {
+    DB_CONNECTION.lock().unwrap()
+}
+
 fn gen_players() -> HashMap<i32, Player> {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut players = HashMap::new();
     for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
@@ -150,7 +154,7 @@ fn reset_ratings() {
 }
 
 fn get_games<'a>() -> Vec<Game> {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut last_date = LAST_DATE.lock().unwrap();
     let mut stmt =
         conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}')", *last_date))

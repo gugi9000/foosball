@@ -8,7 +8,7 @@ fn newgame<'a>() -> Res<'a> {
 }
 
 fn newgame_con() -> Context {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
     let mut names: Vec<_> = stmt.query_map(&[], |row| {
             Named {
@@ -33,7 +33,6 @@ fn newgame_con() -> Context {
         .unwrap()
         .map(Result::unwrap)
         .collect();
-
 
     let mut context = create_context("newgame");
 
@@ -72,7 +71,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
         return TERA.render("pages/newgame_fejl.html", context).respond();
     }
 
-    let res = DB_CONNECTION.lock().unwrap().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
+    let res = lock_database().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
                             ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
                            &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
     println!("{:?}", res);
@@ -82,7 +81,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
 
 #[get("/games")]
 fn games<'a>() -> Res<'a> {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \

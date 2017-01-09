@@ -3,7 +3,7 @@ use rocket::response::Responder;
 
 #[get("/players")]
 fn players<'a>() -> Res<'a> {
-    let conn = DB_CONNECTION.lock().unwrap();
+    let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
     let mut players = Vec::new();
@@ -20,8 +20,8 @@ fn players<'a>() -> Res<'a> {
 }
 
 #[get("/player/<name>")]
-fn player<'a>(name:String) -> Res<'a> {
-    let conn = DB_CONNECTION.lock().unwrap();
+fn player<'a>(name: String) -> Res<'a> {
+    let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
@@ -48,7 +48,7 @@ fn player<'a>(name:String) -> Res<'a> {
     let mut context = create_context("player");
          // TODO handle players that don't exist
     if games.len() != 0 {
-        println!("Ukendt spiller: {}",name);
+        println!("Ukendt spiller: {}", name);
     }
     context.add("games", &games);
     context.add("name", &name);
@@ -80,8 +80,7 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
     } else if name.is_empty() {
         context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
-        let conn = DB_CONNECTION.lock().unwrap();
-        let n = conn.execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
+        let n = lock_database().execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
 
         if n == 0 {
             context.add("fejl", &"Den indtastede spiller eksisterer allerede 💩");
