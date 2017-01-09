@@ -8,6 +8,7 @@
 {{name}}
 {% endblock title %}
 {% block content %}
+{% if games %}
 <p>
 {{macros::newgame()}}
 </p>
@@ -35,4 +36,7 @@
     {% endfor %}
   </tbody>
 </table>
+{% else %}
+{{ macros::errorpage(error="Spilleren findes ikke!")}}
+{% endif %}
 {% endblock content %}

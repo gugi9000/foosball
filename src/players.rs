@@ -20,7 +20,7 @@ fn players<'a>() -> Res<'a> {
 }
 
 #[get("/player/<name>")]
-fn player<'a>(name: String) -> Res<'a> {
+fn player<'a>(mut name: String) -> Res<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -44,11 +44,9 @@ fn player<'a>(name: String) -> Res<'a> {
         .map(Result::unwrap)
         .collect();
 
-    //let name: String = conn.query_row("SELECT name from players WHERE id = ?1", &[&id], |row| row.get(0)).unwrap();
     let mut context = create_context("player");
-         // TODO handle players that don't exist
-    if games.len() != 0 {
-        println!("Ukendt spiller: {}", name);
+    if games.is_empty() {
+        name = "Ukendt spiller".to_owned();
     }
     context.add("games", &games);
     context.add("name", &name);
