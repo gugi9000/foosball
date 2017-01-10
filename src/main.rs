@@ -280,6 +280,7 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![analysis::analysis,
+                       analysis::pvp,
                        ratings::root,
                        statics::favicon_handler,
                        games::games,

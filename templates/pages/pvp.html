@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+
+{% block header %}
+PvP
+{% endblock header %}
+{% block title %}
+Kampe
+{% endblock title %}
+{% block content %}
+<p>
+    Kampe mellem {{map.0.2}} og {{map.1.2}} 
+</p>
+<p>
+    Målscore: {{map.0.0}} - {{map.1.0}}
+</p>
+<p>
+    {{map.0.2}} har vundet {{map.0.1}} kampe over {{map.1.2}}<br/>
+    {{map.1.2}} har vundet {{map.1.1}} kampe over {{map.0.2}}<br/>
+    I alt {{pvp | length}} kampe.
+</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Hvid spiller</th>
+      <th>Sort spiller</th>
+      <th>Resultat</th>
+      <th>Bold</th>
+      <th>Tidspunkt</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in pvp %}
+      <tr>
+        <td><a href="/player/{{g.home}}">{{g.home | escape}}</a></td>
+        <td><a href="/player/{{g.away}}">{{g.away | escape}}</a></td>
+        <td>
+            {{g.home_score | egg(person=g.home|escape)}} &ndash; {{g.away_score | egg(person=g.away|escape)}}
+        </td>
+        <td><a href="/ball/{{g.ball_name}}"><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></a></td>
+        <td>{{g.dato}}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}
