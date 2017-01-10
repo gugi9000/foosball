@@ -1,16 +1,16 @@
 # foosball
-A rating calculator for the office foosball league
+A ratings calculator for the office foosball league
 
-Maintains a leader board using a ratings system, BBT,
-based on SkillScore and Elo.
+Maintains a leader board using a ratings system, BBT;
+based on Glicko, SkillScore and Elo.
 
 The more games you play the less variance on your rating.
 Compete against better rated player (and win) to improve
 your rating the most.
 
-It seems more far when not everyone has time to play as
-often as others. Also those who have a good streak still
-cannot rest on their laurels.
+This is more fair when some don't have as much time to play as
+as others. Also those who have a good streak cannot rest on
+their laurels for long.
 
 We are currently testing the software in-house with a lot
 of games. Figuring out what makes sense and what doesn't.
