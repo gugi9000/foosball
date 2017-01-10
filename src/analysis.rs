@@ -6,6 +6,16 @@ fn analysis<'a>() -> Res<'a> {
     TERA.render("pages/analysis.html", create_context("analysis")).respond()
 }
 
+#[get("/analysis/balls")]
+fn balls<'a>() -> Res<'a> {
+    TERA.render("pages/analysis.html", create_context("analysis")).respond()
+}
+
+#[get("/analysis/homeaway")]
+fn homeaway<'a>() -> Res<'a> {
+    TERA.render("pages/analysis.html", create_context("analysis")).respond()
+}
+
 #[get("/analysis/pvp")]
 fn pvpindex<'a>() -> Res<'a> {
     let conn = lock_database();
