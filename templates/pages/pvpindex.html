@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block header %}
+PvP Indeks
+{% endblock header %}
+{% block title %}
+PvP Indeks
+{% endblock title %}
+{% block content %}
+<form>
+  <div class="row">
+    <div class="col-md-3">
+      Spiller 1:<br/>
+      {% for n in names %}
+      <input type="radio" name="player1" value="{{n.id}}" required> <img src="/static/players/{{n.name}}.png" height=40 alt="{{n.name | escape}}" /> {{n.name}}<br>
+      {% endfor %}
+    </div>
+    <div class="col-md-3">
+      Spiller 2:<br/>
+      {% for n in names %}
+      <input type="radio" name="player2" value="{{n.id}}" required> <img src="/static/players/{{n.name}}.png" height=40 alt="{{n.name | escape}}" /> {{n.name}}<br>
+      {% endfor %}
+    </div>
+  </div>
+  <hr />
+  <p>
+    <input type="button" onclick="pvpcompare()" value="Sammenlign"/>
+  </p>
+</form>
+{% endblock content %}

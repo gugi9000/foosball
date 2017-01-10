@@ -281,6 +281,7 @@ fn main() {
         .mount("/",
                routes![analysis::analysis,
                        analysis::pvp,
+                       analysis::pvpindex,
                        ratings::root,
                        statics::favicon_handler,
                        games::games,

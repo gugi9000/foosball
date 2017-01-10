@@ -6,6 +6,26 @@ fn analysis<'a>() -> Res<'a> {
     TERA.render("pages/analysis.html", create_context("analysis")).respond()
 }
 
+#[get("/analysis/pvp")]
+fn pvpindex<'a>() -> Res<'a> {
+    let conn = lock_database();
+    let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
+    let names: Vec<_> = stmt.query_map(&[], |row| {
+            Named {
+                id: row.get(0),
+                name: row.get(1)
+            }
+        })
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+
+    let mut context = create_context("analysis");
+    context.add("names", &names);
+
+    TERA.render("pages/pvpindex.html", context).respond()
+}
+
 #[get("/analysis/pvp/<p1>/<p2>")]
 fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
     let conn = lock_database();
