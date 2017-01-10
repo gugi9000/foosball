@@ -16,10 +16,11 @@ We are currently testing the software in-house with a lot
 of games. Figuring out what makes sense and what doesn't.
 
 Ease of use and a nice layout ensures that all games get tracked.
+![Sample Ratings Page](ScreenShot.png)
 
 ## todo
 See [open issues: label: bugs](https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
 
 ## ideas
-See [open issues: label: enhancements](https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
+See [open issues: label: todo](https://github.com/gugi9000/foosball/issues?q=is%3Aissue+is%3Aopen+label%3Atodo)
 
