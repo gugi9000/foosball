@@ -86,7 +86,7 @@ fn games<'a>() -> Res<'a> {
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
-                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY ID DESC")
+                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[], |row| {
             PlayedGame {

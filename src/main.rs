@@ -157,7 +157,7 @@ fn get_games<'a>() -> Vec<Game> {
     let conn = lock_database();
     let mut last_date = LAST_DATE.lock().unwrap();
     let mut stmt =
-        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}')", *last_date))
+        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}') order by dato asc", *last_date))
             .unwrap();
 
     let gs = stmt.query_map(&[], |row| {
