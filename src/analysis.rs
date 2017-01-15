@@ -19,7 +19,7 @@ fn homeaway<'a>() -> Res<'a> {
 #[get("/analysis/pvp")]
 fn pvpindex<'a>() -> Res<'a> {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
+    let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
     let names: Vec<_> = stmt.query_map(&[], |row| {
             Named {
                 id: row.get(0),
@@ -45,7 +45,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato, home_id FROM games g \
                       WHERE (home_id = ?1 and away_id = ?2) or (home_id = ?2 and away_id = ?1) \
-                      ORDER BY dato DESC")
+                      and dato > datetime('now', '-90 day') ORDER BY dato DESC")
             .unwrap();
     
     let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));
