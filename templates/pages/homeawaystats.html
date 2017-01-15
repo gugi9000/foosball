@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+
+{% block header %}
+Hvid mod sort
+{% endblock header %}
+{% block title %}
+Hvid mod sort
+{% endblock title %}
+{% block content %}
+<p>
+{{macros::newgame()}}
+</p>
+<p>
+    Hvid er hjemmeholdet. Sort er udeholdet.
+</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>&nbsp;</th>
+      <th>Hvid</th>
+      <th>Sort</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for felt in homeawaystats %}
+      <tr>
+        <th>Vundne</th>
+        <td>{{felt.homewins}}</td>
+        <td>{{felt.awaywins}}</td>
+      </tr>
+        <th>Mål</th>
+        <td>{{felt.homegoals}}</td>
+        <td>{{felt.awaygoals}}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+{% endblock content %}
