@@ -1,5 +1,4 @@
 use ::*;
-use rand::Rng;
 use rocket::response::Responder;
 
 #[get("/newgame")]
@@ -9,8 +8,8 @@ fn newgame<'a>() -> Res<'a> {
 
 fn newgame_con() -> Context {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name FROM players").unwrap();
-    let mut names: Vec<_> = stmt.query_map(&[], |row| {
+    let mut stmt = conn.prepare("SELECT id, name FROM players order by random()").unwrap();
+    let names: Vec<_> = stmt.query_map(&[], |row| {
             Named {
                 id: row.get(0),
                 name: row.get(1)
@@ -19,8 +18,6 @@ fn newgame_con() -> Context {
         .unwrap()
         .map(Result::unwrap)
         .collect();
-
-    names.sort_by(|_, _| *rand::thread_rng().choose(&[Greater, Less]).unwrap());
 
     let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
     let balls: Vec<_> = ballstmt.query_map(&[], |row| {

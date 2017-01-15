@@ -4,7 +4,6 @@
 extern crate rocket;
 extern crate bbt;
 extern crate rustc_serialize;
-extern crate rand;
 extern crate rusqlite;
 extern crate toml;
 #[macro_use]
