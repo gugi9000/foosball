@@ -22,11 +22,16 @@ Boldstatistik
   <tbody>
     {% for b in ballstats %}
       <tr>
-        <td><a href="/ball/{{b.name}}"><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}"/></a></a></td>
-        <td>{{b.games}}</a></td>
-        <td>{{b.goals}}</a></td>
+        <td><a href="/ball/{{b.name}}"><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}"/></a> {{b.name|escape}}</td>
+        <td>{{b.games}}</td>
+        <td>{{b.goals}}</td>
       </tr>
     {% endfor %}
   </tbody>
 </table>
+<p>
+    Hvad er en yndlingsbold? Er det den man spiller mest med, scorer flest mål med eller den man har vundet kampe med?<br/>
+    <a href="mailto:bso@dynateam.dk">Feedback</a> er velkommen :-)
+</p>
+
 {% endblock content %}

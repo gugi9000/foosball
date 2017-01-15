@@ -1,6 +1,6 @@
 [package]
 name = "foosball"
-version = "0.6.6"
+version = "0.6.7"
 authors = ["Bjarke Sørensen <bs@wasd.dk>",
     "Lucas Falch Sørensen <lucas@wasd.dk"]
 
