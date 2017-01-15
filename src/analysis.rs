@@ -6,9 +6,36 @@ fn analysis<'a>() -> Res<'a> {
     TERA.render("pages/analysis.html", create_context("analysis")).respond()
 }
 
+#[derive(Debug, Serialize)]
+struct Ballstats {
+    name: String,
+    games: i32,
+    goals: i32,
+    img: String,
+}
+
 #[get("/analysis/balls")]
-fn balls<'a>() -> Res<'a> {
-    TERA.render("pages/analysis.html", create_context("analysis")).respond()
+fn ballstats<'a>() -> Res<'a> {
+    let conn = lock_database();
+    let mut stmt =
+        conn.prepare("select ball_id, sum(home_score+away_score), count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > datetime('now', '-90 day') GROUP BY ball_id")
+            .unwrap();
+    let ballstats: Vec<_> = stmt.query_map(&[], |row| {
+        Ballstats { 
+            name: row.get(3),
+            img: row.get(4),
+            games: row.get(2),
+            goals: row.get(1),
+        }
+    })
+    .unwrap()
+    .map(Result::unwrap)
+    .collect();
+
+    let mut context = create_context("ballstats");
+
+    context.add("ballstats", &ballstats);
+    TERA.render("pages/ballstats.html", context).respond()
 }
 
 #[get("/analysis/homeaway")]

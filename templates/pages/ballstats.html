@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+
+{% block header %}
+Boldstatistik
+{% endblock header %}
+{% block title %}
+Boldstatistik
+{% endblock title %}
+{% block content %}
+<p>
+{{macros::newgame()}}
+</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Bold</th>
+      <th>Antal spil</th>
+      <th>Antal mål</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for b in ballstats %}
+      <tr>
+        <td><a href="/ball/{{b.name}}"><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}"/></a></a></td>
+        <td>{{b.games}}</a></td>
+        <td>{{b.goals}}</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock content %}
