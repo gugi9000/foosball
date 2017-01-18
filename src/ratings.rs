@@ -1,11 +1,13 @@
 use ::*;
 use rocket::response::Responder;
 
+// TODO Show latest X games and top Y players
 #[get("/")]
 fn root<'a>() -> Res<'a> {
     ratings::rating()
 }
 
+// TODO: Rename to ratings
 #[get("/rating")]
 fn rating<'a>() -> Res<'a> {
     let mut players = PLAYERS.lock().unwrap();
