@@ -6,6 +6,11 @@ fn analysis<'a>() -> Res<'a> {
     TERA.render("pages/analysis.html", create_context("analysis")).respond()
 }
 
+#[get("/ratingsdev")]
+fn ratingsdev<'a>() -> Res<'a> {
+    TERA.render("pages/ratingsdev.html", create_context("analysis")).respond()
+}
+
 #[derive(Debug, Serialize)]
 struct Ballstats {
     name: String,

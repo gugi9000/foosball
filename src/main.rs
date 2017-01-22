@@ -283,6 +283,7 @@ fn main() {
                        analysis::homeaway,
                        analysis::pvp,
                        analysis::pvpindex,
+                       analysis::ratingsdev,
                        ratings::root,
                        statics::favicon_handler,
                        games::games,
