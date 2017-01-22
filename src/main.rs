@@ -86,7 +86,7 @@ fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value>
 
 lazy_static! {
     pub static ref TERA: Tera = {
-        let mut tera = compile_templates!("templates/**/*.html");
+        let mut tera = compile_templates!("templates/**/*.*");
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
         tera
@@ -280,6 +280,7 @@ fn main() {
         .mount("/",
                routes![analysis::analysis,
                        analysis::ballstats,
+                       analysis::developmenttsv,
                        analysis::homeaway,
                        analysis::pvp,
                        analysis::pvpindex,
