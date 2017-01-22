@@ -21,10 +21,17 @@ Udvikling
 Udvikling af ratings
 {% endblock title %}
 {% block content %}
+<div class="alert alert-danger" role="alert">
+  <strong>Demo data!</strong> Dette er bare et eksempel 😉
+</div>
 <p>
 {{macros::newgame()}}
 </p>
         <svg width="800" height="500"></svg>
+<p>
+  Scoren er en kombination af µ (rating) og σ (sigma),
+  så der vises den dårligst mulige score (µ-3σ).
+</p>
 <script src="http://d3js.org/d3.v4.min.js"></script>
 <script>
 
@@ -80,7 +87,7 @@ d3.tsv("/data/ratingsdev.tsv", type, function(error, data) {
       .attr("y", 6)
       .attr("dy", "0.71em")
       .attr("fill", "#000")
-      .text("Rating");
+      .text("Score");
 
   var player = g.selectAll(".player")
     .data(players)
