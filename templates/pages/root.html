@@ -9,6 +9,8 @@ Foosball Dashboard
 {% endblock title %}
 
 {% block content %}
+    
+<h3>Top 5</h3>
 <table class="table table-striped">
   <thead>
     <tr>
@@ -23,6 +25,7 @@ Foosball Dashboard
   </thead>
   <tbody>
     {% for p in players %}
+      {% if loop.index < 6 %}
       <tr>
         <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
         <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>{% else %}{{p.name|escape}}{% endif %}</a></td>
@@ -35,7 +38,33 @@ Foosball Dashboard
           {% if p.eggs %} {{p.eggs}} <img style="height: 16px"src="/static/egg.png" alt="🍆"> {% endif %}
         </td>
       </tr>
-      {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+<h3>Seneste kampe</h3>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Hvid spiller</th>
+      <th>Sort spiller</th>
+      <th>Resultat</th>
+      <th>Bold</th>
+      <th>Tidspunkt</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in games %}
+      <tr>
+        <td><a href="/player/{{g.home}}">{{g.home | escape}}</a></td>
+        <td><a href="/player/{{g.away}}">{{g.away | escape}}</a></td>
+        <td>
+            {{g.home_score | egg(person=g.home|escape)}} &ndash; {{g.away_score | egg(person=g.away|escape)}}
+        </td>
+        <td><a href="/ball/{{g.ball_name}}"><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></a></td>
+        <td>{{g.dato}}</td>
+      </tr>
+    {% endfor %}
   </tbody>
 </table>
 <p>

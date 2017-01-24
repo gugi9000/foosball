@@ -43,6 +43,31 @@ fn root<'a>() -> Res<'a> {
     let mut context = create_context("root");
     context.add("players", &ps);
 
+
+    let conn = lock_database();
+    let mut stmt =
+        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
+                      (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
+                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5")
+            .unwrap();
+       let games: Vec<_> = stmt.query_map(&[], |row| {
+            PlayedGame {
+                home: row.get(0),
+                away: row.get(1),
+                home_score: row.get(2),
+                away_score: row.get(3),
+                ball: row.get(5),
+                ball_name: row.get(6),
+                dato: row.get(7),
+            }
+        })
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+
+    context.add("games" ,&games);
+
 // TODO Show latest X games and top Y players
     TERA.render("pages/root.html", context).respond()
 }
