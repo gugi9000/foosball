@@ -1,8 +1,7 @@
 use ::*;
 use rocket::response::Responder;
 
-#[get("/")]
-fn root<'a>() -> Res<'a> {
+pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
     let mut players = PLAYERS.lock().unwrap();
 
     for g in get_games() {
@@ -11,7 +10,7 @@ fn root<'a>() -> Res<'a> {
 
         {
             let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(away_rating, g.home_win);
+            home_player.duel(g.dato.clone(), away_rating, g.home_win);
             if g.ace {
                 if g.home_win {
                     home_player.aces += 1;
@@ -22,7 +21,7 @@ fn root<'a>() -> Res<'a> {
         }
         {
             let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(home_rating, !g.home_win);
+            away_player.duel(g.dato, home_rating, !g.home_win);
             if g.ace {
                 if g.home_win {
                     away_player.eggs += 1;
@@ -33,16 +32,20 @@ fn root<'a>() -> Res<'a> {
         }
     }
 
-    let mut ps: Vec<_> = players.values().collect();
+    let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).collect();
     ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
         Less
     } else {
         Greater
     });
     ps.retain(|a| a.kampe != 0);
-    let mut context = create_context("root");
-    context.add("players", &ps);
+    ps
+}
 
+#[get("/")]
+fn root<'a>() -> Res<'a> {
+    let mut context = create_context("root");
+    context.add("players", &get_and_update_new_ratings());
 
     let conn = lock_database();
     let mut stmt =
@@ -74,45 +77,8 @@ fn root<'a>() -> Res<'a> {
 
 #[get("/ratings")]
 fn ratings<'a>() -> Res<'a> {
-    let mut players = PLAYERS.lock().unwrap();
-
-    for g in get_games() {
-        let away_rating = players[&g.away].rating.0.clone();
-        let home_rating = players[&g.home].rating.0.clone();
-
-        {
-            let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(away_rating, g.home_win);
-            if g.ace {
-                if g.home_win {
-                    home_player.aces += 1;
-                } else {
-                    home_player.eggs += 1;
-                }
-            }
-        }
-        {
-            let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(home_rating, !g.home_win);
-            if g.ace {
-                if g.home_win {
-                    away_player.eggs += 1;
-                } else {
-                    away_player.aces += 1;
-                }
-            }
-        }
-    }
-
-    let mut ps: Vec<_> = players.values().collect();
-    ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
-        Less
-    } else {
-        Greater
-    });
-    ps.retain(|a| a.kampe != 0);
     let mut context = create_context("rating");
-    context.add("players", &ps);
+    context.add("players", &get_and_update_new_ratings());
 
     TERA.render("pages/ratings.html", context).respond()
 }

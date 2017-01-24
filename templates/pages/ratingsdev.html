@@ -21,9 +21,6 @@ Udvikling
 Udvikling af ratings
 {% endblock title %}
 {% block content %}
-<div class="alert alert-danger" role="alert">
-  <strong>Demo data!</strong> Dette er bare et eksempel 😉
-</div>
 <p>
 {{macros::newgame()}}
 </p>
@@ -41,7 +38,7 @@ var svg = d3.select("svg"),
     height = svg.attr("height") - margin.top - margin.bottom,
     g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-var parseTime = d3.timeParse("%Y%m%d");
+var parseTime = d3.timeParse("%Y%m%dT%H:%M");
 
 var x = d3.scaleTime().range([0, width]),
     y = d3.scaleLinear().range([height, 0]),

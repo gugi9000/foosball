@@ -109,7 +109,7 @@ lazy_static! {
         toml::decode_str(&buf).unwrap()
     };
     static ref RATER: Rater = Rater::new(BETA / 6.0);
-    pub static ref PLAYERS: Mutex<HashMap<i32, Player>> = Mutex::new(gen_players());
+    pub static ref PLAYERS: Mutex<HashMap<i32, PlayerRating>> = Mutex::new(gen_players());
     pub static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
     // Has to be a `Mutex` because `Connection` isn't `Sync`
     pub static ref DB_CONNECTION: Mutex<Connection> = Mutex::new({
@@ -136,13 +136,13 @@ pub fn lock_database() -> MutexGuard<'static, Connection> {
     DB_CONNECTION.lock().unwrap()
 }
 
-fn gen_players() -> HashMap<i32, Player> {
+fn gen_players() -> HashMap<i32, PlayerRating> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut players = HashMap::new();
     for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
         let (id, name) = p.unwrap();
-        players.insert(id, Player::new(name));
+        players.insert(id, PlayerRating::new(name));
     }
     players
 }
@@ -150,6 +150,14 @@ fn gen_players() -> HashMap<i32, Player> {
 fn reset_ratings() {
     *PLAYERS.lock().unwrap() = gen_players();
     *LAST_DATE.lock().unwrap() = INITIAL_DATE_CAP.to_owned();
+}
+
+pub struct Game {
+    home: i32,
+    away: i32,
+    dato: DateTime,
+    ace: bool,
+    home_win: bool,
 }
 
 fn get_games<'a>() -> Vec<Game> {
@@ -167,6 +175,7 @@ fn get_games<'a>() -> Vec<Game> {
             Game {
                 home: row.get(0),
                 away: row.get(1),
+                dato: last_date.clone(),
                 ace: home_score == 0 || away_score == 0,
                 home_win: home_score > away_score,
             }
@@ -224,8 +233,22 @@ impl serde::Serialize for SerRating {
     }
 }
 
+type DateTime = String;
+
+#[derive(Debug, Clone)]
+pub struct PlayerRating {
+    pub name: String,
+    pub ratings_history: Vec<(DateTime, SerRating)>,
+    pub rating: SerRating,
+    pub kampe: u32,
+    pub vundne: u32,
+    pub tabte: u32,
+    pub eggs: u32,
+    pub aces: u32,
+}
+
 #[derive(Debug, Clone, Serialize)]
-pub struct Player {
+pub struct PlayerData {
     pub name: String,
     pub rating: SerRating,
     pub kampe: u32,
@@ -238,11 +261,12 @@ pub struct Player {
 use std::mem::replace;
 use bbt::Outcome::{Win, Loss};
 
-impl Player {
+impl PlayerRating {
     fn new<S: ToString>(name: S) -> Self {
-        Player {
+        PlayerRating {
             name: name.to_string(),
             rating: SerRating(Rating::new(BETA, BETA / 3.0)),
+            ratings_history: Vec::new(),
             kampe: 0,
             vundne: 0,
             tabte: 0,
@@ -251,7 +275,7 @@ impl Player {
 
         }
     }
-    fn duel(&mut self, o: Rating, won: bool) {
+    fn duel(&mut self, time: DateTime, o: Rating, won: bool) {
         let a = replace(&mut self.rating.0, Default::default());
 
         let (a, _) = RATER.duel(a, o, if won { Win } else { Loss });
@@ -263,14 +287,19 @@ impl Player {
         } else {
             self.tabte += 1;
         }
+        self.ratings_history.push((time, self.rating.clone()))
     }
-}
-
-struct Game {
-    home: i32,
-    away: i32,
-    ace: bool,
-    home_win: bool,
+    fn to_data(&self) -> PlayerData {
+        PlayerData {
+            name: self.name.clone(),
+            rating: self.rating.clone(),
+            kampe: self.kampe,
+            vundne: self.vundne,
+            tabte: self.tabte,
+            eggs: self.eggs,
+            aces: self.aces
+        }
+    }
 }
 
 fn main() {

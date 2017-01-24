@@ -11,32 +11,49 @@ fn ratingsdev<'a>() -> Res<'a> {
     TERA.render("pages/ratingsdev.html", create_context("analysis")).respond()
 }
 
+use std::collections::BTreeMap;
+
 #[get("/data/ratingsdev.tsv")]
 fn developmenttsv<'a>() -> Res<'a> {
-    let data = "date	Bo	Jens Ole	Kristian	Steen	Bjarke	Andrei	Rune
-20170101	5000	5000	5000	5000	5000	5000	0
-20170102	4800	5209	5707	5207	5202	5000	0
-20170103	4303	5401	5904	5207	5302	5000	0
-20170104	4507	5708	4800	5207	5402	5000	0
-20170105	4402	5807	5204	5707	5502	5000	0
-20170106	3808	5700	5700	6207	5602	5000	0
-20170107	3808	6400	5700	5200	6000	5000	0
-20170108	3108	6608	5809	4207	7002	5000	4500
-20170109	2903	6607	6808	4207	7102	5000	4500
-20170110	3102	6501	6807	4207	7102	5000	4500
-20170111	2807	6601	7003	4207	7202	5000	4500
-20170112	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4500
-20170113	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4500
-20170114	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4200
-20170115	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4200
-20170116	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4200
-20170117	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4200
-20170118	2848.2	6676.5	5440.7	4674.6	7112.7	5000	4200
-20170119	2961.1	6696.1	5796.3	4379.9	7759.2	5000	4200
-20170120	2961.1	6696.1	5796.3	4379.9	7759.2	5000	4500
-20170121	2961.1	6696.1	5796.3	4379.9	7759.2	5000	4500
-20170122	2961.1	6696.1	5796.3	4379.9	7759.2	5000	4500
-";
+    // HACK This seems a bit weird, but it works
+    let mut ratings_history = BTreeMap::<String, HashMap<i32, f64>>::new();
+
+    for (&id, player) in PLAYERS.lock().unwrap().iter() {
+        for &(ref date, ref rating) in &player.ratings_history {
+            let date = format!("{}{}{}T{}", &date[0..4], &date[5..7], &date[8..10], &date[11..16]);
+            let ratings_for_date = ratings_history.entry(date).or_insert_with(HashMap::new);
+            ratings_for_date.insert(id, rating.get_rating());
+        }
+    }
+
+    let names: Vec<_> = PLAYERS.lock().unwrap().iter().map(|(&id, p)| (id, p.name.clone())).collect();
+
+    let mut data = "date".to_owned();
+
+    for &(_, ref name) in &names {
+        data.push('\t');
+        data.push_str(name);
+    }
+    data.push('\n');
+
+    let mut cache = HashMap::new();
+
+    for (date, player_ratings) in ratings_history.into_iter() {
+        let mut line = date;
+        for &(ref id, _) in &names {
+            line.push('\t');
+            let rating = if let Some(rating) = player_ratings.get(id).map(|&f| f) {
+                cache.insert(id, rating);
+                rating
+            } else {
+                *cache.entry(id).or_insert(0.)
+            };
+            line.push_str(&format!("{:.1}", rating));
+        }
+        data.push_str(&line);
+        data.push('\n');
+    }
+
     let mut context = create_context("ratingsdev");
     context.add("ratingsdev", &data);
     TERA.render("data/ratingsdev.tsv", context).respond()
@@ -57,7 +74,7 @@ fn ballstats<'a>() -> Res<'a> {
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > datetime('now', '-90 day') GROUP BY ball_id order by balls desc , goals desc")
             .unwrap();
     let ballstats: Vec<_> = stmt.query_map(&[], |row| {
-        Ballstats { 
+        Ballstats {
             name: row.get(3),
             img: row.get(4),
             games: row.get(2),
@@ -88,7 +105,7 @@ fn homeaway<'a>() -> Res<'a> {
         conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) where home_score < away_score ) as homegoals, (select sum(away_score) where home_score < away_score ) as awaygoals from games;")
             .unwrap();
     let homeawaystats: Vec<_> = stmt.query_map(&[], |row| {
-        Homeawaystats { 
+        Homeawaystats {
             homewins: row.get(0),
             awaywins: row.get(1),
             homegoals: row.get(2),
@@ -135,7 +152,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
                       WHERE (home_id = ?1 and away_id = ?2) or (home_id = ?2 and away_id = ?1) \
                       and dato > datetime('now', '-90 day') ORDER BY dato DESC")
             .unwrap();
-    
+
     let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));
 
     let pvp: Vec<_> = stmt.query_map(&[&p1, &p2], |row| {
@@ -149,7 +166,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
                 dato: row.get(7),
             };
             let home_id: i32 = row.get(8);
-            
+
             let home_win = game.home_score > game.away_score;
             {
                 let home = if home_id == p1 {&mut map.0} else {&mut map.1};
