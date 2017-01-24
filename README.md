@@ -1,7 +1,7 @@
 # foosball
 A ratings calculator for the office foosball league
 
-Maintains a leader board using a ratings system, BBT;
+Keeps a leader board using a ratings system, BBT;
 based on Glicko, SkillScore and Elo.
 
 The more games you play the less variance on your rating.
