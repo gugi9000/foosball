@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+
+{% block header %}
+Dynateam Foosball
+{% endblock header %}
+{% block title %}
+Foosball Dashboard
+{% endblock title %}
+
+{% block content %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Placering</th>
+      <th>Navn</th>
+      <th>Rating (µ±σ) </th>
+      <th>Kampe</th>
+      <th>Vundne</th>
+      <th>Tabte</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in players %}
+      <tr>
+        <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
+        <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>{% else %}{{p.name|escape}}{% endif %}</a></td>
+        <td>{{p.rating.mu}}±{{p.rating.sigma}}</td>
+        <td>{{p.kampe}}</td>
+        <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
+        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte| round}} %">{{p.tabte}}</abbr></td>
+        <td>
+          {% if p.aces %} {{p.aces}} 🏆 {% endif %}
+          {% if p.eggs %} {{p.eggs}} <img style="height: 16px"src="/static/egg.png" alt="🍆"> {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+  </tbody>
+</table>
+<p>
+{{macros::newgame()}}
+</p>
+<p><label for="auto-refresh">Auto-refresh: <input type="checkbox" id="auto-refresh" checked></label></p>
+{% endblock content %}

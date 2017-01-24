@@ -285,7 +285,6 @@ fn main() {
                        analysis::pvp,
                        analysis::pvpindex,
                        analysis::ratingsdev,
-                       ratings::root,
                        statics::favicon_handler,
                        games::games,
                        games::newgame,
@@ -296,8 +295,9 @@ fn main() {
                        players::player,
                        players::newplayer,
                        players::submit_newplayer,
+                       ratings::ratings,
                        ratings::reset,
-                       ratings::rating,
+                       ratings::root,
                        statics::static_handler])
         .catch(errors![page_not_found, bad_request, server_error])
         .launch();
