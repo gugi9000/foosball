@@ -44,7 +44,7 @@ fn player<'a>(mut name: String) -> Res<'a> {
         .map(Result::unwrap)
         .collect();
 
-    let mut context = create_context("player");
+    let mut context = create_context("players");
     if games.is_empty() {
         name = "Ukendt spiller".to_owned();
     }
@@ -55,7 +55,7 @@ fn player<'a>(mut name: String) -> Res<'a> {
 
 #[get("/newplayer")]
 fn newplayer<'a>() -> Res<'a> {
-    TERA.render("pages/newplayer.html", create_context("newplayer")).respond()
+    TERA.render("pages/newplayer.html", create_context("players")).respond()
 }
 
 #[post("/newplayer/submit", data = "<f>")]
@@ -72,7 +72,7 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
             _ => (),
         }
     }
-    let mut context = create_context("newplayer");
+    let mut context = create_context("players");
     if secret != CONFIG.secret {
         context.add("fejl", &"Det indtastede kodeord er forkert 💩");
     } else if name.is_empty() {

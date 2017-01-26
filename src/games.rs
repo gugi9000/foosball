@@ -31,7 +31,7 @@ fn newgame_con() -> Context {
         .map(Result::unwrap)
         .collect();
 
-    let mut context = create_context("newgame");
+    let mut context = create_context("games");
 
     context.add("names", &names);
     context.add("balls", &balls);

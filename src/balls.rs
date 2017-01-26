@@ -48,7 +48,7 @@ fn ball<'a>(ball:String) -> Res<'a> {
         .map(Result::unwrap)
         .collect();
 
-    let mut context = create_context("ball");
+    let mut context = create_context("balls");
          // TODO handle players that don't exist
     if games.len() != 0 {
         println!("Ukendt bold: {}",ball);
