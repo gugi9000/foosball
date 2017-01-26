@@ -8,6 +8,7 @@ PvP: Spiller mod spiller
 Kampe
 {% endblock title %}
 {% block content %}
+{% if map.0.2 %}
 <p>
     Kampe mellem {{map.0.2}} og {{map.1.2}} 
 </p>
@@ -43,4 +44,17 @@ Kampe
     {% endfor %}
   </tbody>
 </table>
+{% endif %}
+{% if not map.0.2 %}
+<div class="alert alert-danger" role="alert">
+  <strong>Hov!</strong> De har vist aldrig spillet mod hinanden.
+</div>
+ <button onclick="goBack()">Tilbage ⬅️</button>
+
+<script>
+function goBack() {
+    window.history.back();
+}
+</script>
+{% endif %}
 {% endblock content %}
