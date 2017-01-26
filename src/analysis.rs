@@ -85,7 +85,7 @@ fn ballstats<'a>() -> Res<'a> {
     .map(Result::unwrap)
     .collect();
 
-    let mut context = create_context("ballstats");
+    let mut context = create_context("analysis");
 
     context.add("ballstats", &ballstats);
     TERA.render("pages/ballstats.html", context).respond()
@@ -115,7 +115,7 @@ fn homeaway<'a>() -> Res<'a> {
     .unwrap()
     .map(Result::unwrap)
     .collect();
-    let mut context = create_context("homeawaystats");
+    let mut context = create_context("analysis");
 
     context.add("homeawaystats", &homeawaystats);
     TERA.render("pages/homeawaystats.html", context).respond()
@@ -199,7 +199,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
 
 
 
-    let mut context = create_context("pvp");
+    let mut context = create_context("analysis");
 
     context.add("pvp", &pvp);
     context.add("map", &map);
