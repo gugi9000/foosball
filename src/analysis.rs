@@ -102,7 +102,7 @@ struct Homeawaystats {
 fn homeaway<'a>() -> Res<'a> {
     let conn = lock_database();
     let mut stmt =
-        conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) where home_score < away_score ) as homegoals, (select sum(away_score) where home_score < away_score ) as awaygoals from games;")
+        conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games;")
             .unwrap();
     let homeawaystats: Vec<_> = stmt.query_map(&[], |row| {
         Homeawaystats {
