@@ -16,7 +16,7 @@ fn balls<'a>() -> Res<'a> {
     let mut context = create_context("balls");
     context.add("balls", &balls);
 
-    TERA.render("pages/balls.html", context).respond()
+    TERA.render("pages/balls.html", &context).respond()
 }
 
 #[get("/ball/<ball>")]
@@ -55,5 +55,5 @@ fn ball<'a>(ball:String) -> Res<'a> {
     }
     context.add("games", &games);
     context.add("ball", &ball);
-    TERA.render("pages/ball.html", context).respond()
+    TERA.render("pages/ball.html", &context).respond()
 }

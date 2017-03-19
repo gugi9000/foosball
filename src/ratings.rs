@@ -72,7 +72,7 @@ fn root<'a>() -> Res<'a> {
     context.add("games" ,&games);
 
 // TODO Show latest X games and top Y players
-    TERA.render("pages/root.html", context).respond()
+    TERA.render("pages/root.html", &context).respond()
 }
 
 #[get("/ratings")]
@@ -80,7 +80,7 @@ fn ratings<'a>() -> Res<'a> {
     let mut context = create_context("rating");
     context.add("players", &get_and_update_new_ratings());
 
-    TERA.render("pages/ratings.html", context).respond()
+    TERA.render("pages/ratings.html", &context).respond()
 }
 
 #[get("/reset/ratings")]

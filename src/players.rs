@@ -1,5 +1,6 @@
 use ::*;
 use rocket::response::Responder;
+use rocket::request::FromFormValue;
 
 #[get("/players")]
 fn players<'a>() -> Res<'a> {
@@ -16,7 +17,7 @@ fn players<'a>() -> Res<'a> {
     let mut context = create_context("players");
     context.add("players", &players);
 
-    TERA.render("pages/players.html", context).respond()
+    TERA.render("pages/players.html", &context).respond()
 }
 
 #[get("/player/<name>")]
@@ -50,12 +51,12 @@ fn player<'a>(mut name: String) -> Res<'a> {
     }
     context.add("games", &games);
     context.add("name", &name);
-    TERA.render("pages/player.html", context).respond()
+    TERA.render("pages/player.html", &context).respond()
 }
 
 #[get("/newplayer")]
 fn newplayer<'a>() -> Res<'a> {
-    TERA.render("pages/newplayer.html", create_context("players")).respond()
+    TERA.render("pages/newplayer.html", &create_context("players")).respond()
 }
 
 #[post("/newplayer/submit", data = "<f>")]
@@ -65,7 +66,7 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
 
     let mut name = Default::default();
     let mut secret = Default::default();
-    for (k, v) in FormItems(&String::from_utf8(v).unwrap()) {
+    for (k, v) in FormItems::from(&*String::from_utf8(v).unwrap()) {
         match k {
             "name" => name = String::from_form_value(v).unwrap(),
             "secret" => secret = String::from_form_value(v).unwrap(),
@@ -87,5 +88,5 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
             return Redirect::to("/").respond();
         }
     }
-    TERA.render("pages/newplayer_fejl.html", context).respond()
+    TERA.render("pages/newplayer_fejl.html", &context).respond()
 }

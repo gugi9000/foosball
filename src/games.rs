@@ -3,7 +3,7 @@ use rocket::response::Responder;
 
 #[get("/newgame")]
 fn newgame<'a>() -> Res<'a> {
-    TERA.render("pages/newgame.html", newgame_con()).respond()
+    TERA.render("pages/newgame.html", &newgame_con()).respond()
 }
 
 fn newgame_con() -> Context {
@@ -37,17 +37,17 @@ fn newgame_con() -> Context {
     context.add("balls", &balls);
     context
 }
-
-fromform_struct!{
-    struct NewGame {
-        home: i32,
-        away: i32,
-        home_score: i32,
-        away_score: i32,
-        ball: i32,
-        secret: String,
-    }
+#[derive(FromForm)]
+struct NewGame {
+  home: i32,
+  away: i32,
+  home_score: i32,
+  away_score: i32,
+  ball: i32,
+  secret: String,
 }
+// fromform_struct!{
+// }
 
 #[post("/newgame/submit", data = "<f>")]
 fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
@@ -56,7 +56,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
     if f.secret != CONFIG.secret {
         let mut context = newgame_con();
         context.add("fejl", &"Det indtastede kodeord er forkert 💩");
-        return TERA.render("pages/newgame_fejl.html", context).respond();
+        return TERA.render("pages/newgame_fejl.html", &context).respond();
     }
 
     if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
@@ -65,7 +65,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
 
         context.add("fejl",
                        &"Den indtastede kamp er ikke lovlig 😜");
-        return TERA.render("pages/newgame_fejl.html", context).respond();
+        return TERA.render("pages/newgame_fejl.html", &context).respond();
     }
 
     let res = lock_database().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
@@ -103,5 +103,5 @@ fn games<'a>() -> Res<'a> {
     let mut context = create_context("games");
 
     context.add("games", &games);
-    TERA.render("pages/games.html", context).respond()
+    TERA.render("pages/games.html", &context).respond()
 }

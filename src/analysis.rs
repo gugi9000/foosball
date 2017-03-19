@@ -3,12 +3,12 @@ use rocket::response::Responder;
 
 #[get("/analysis")]
 fn analysis<'a>() -> Res<'a> {
-    TERA.render("pages/analysis.html", create_context("analysis")).respond()
+    TERA.render("pages/analysis.html", &create_context("analysis")).respond()
 }
 
 #[get("/ratingsdev")]
 fn ratingsdev<'a>() -> Res<'a> {
-    TERA.render("pages/ratingsdev.html", create_context("analysis")).respond()
+    TERA.render("pages/ratingsdev.html", &create_context("analysis")).respond()
 }
 
 use std::collections::BTreeMap;
@@ -56,7 +56,7 @@ fn developmenttsv<'a>() -> Res<'a> {
 
     let mut context = create_context("ratingsdev");
     context.add("ratingsdev", &data);
-    TERA.render("data/ratingsdev.tsv", context).respond()
+    TERA.render("data/ratingsdev.tsv", &context).respond()
 }
 
 #[derive(Debug, Serialize)]
@@ -88,7 +88,7 @@ fn ballstats<'a>() -> Res<'a> {
     let mut context = create_context("analysis");
 
     context.add("ballstats", &ballstats);
-    TERA.render("pages/ballstats.html", context).respond()
+    TERA.render("pages/ballstats.html", &context).respond()
 }
 
 #[derive(Debug, Serialize)]
@@ -118,7 +118,7 @@ fn homeaway<'a>() -> Res<'a> {
     let mut context = create_context("analysis");
 
     context.add("homeawaystats", &homeawaystats);
-    TERA.render("pages/homeawaystats.html", context).respond()
+    TERA.render("pages/homeawaystats.html", &context).respond()
 }
 
 #[get("/analysis/pvp")]
@@ -138,7 +138,7 @@ fn pvpindex<'a>() -> Res<'a> {
     let mut context = create_context("analysis");
     context.add("names", &names);
 
-    TERA.render("pages/pvpindex.html", context).respond()
+    TERA.render("pages/pvpindex.html", &context).respond()
 }
 
 #[get("/analysis/pvp/<p1>/<p2>")]
@@ -203,5 +203,5 @@ fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
 
     context.add("pvp", &pvp);
     context.add("map", &map);
-    TERA.render("pages/pvp.html", context).respond()
+    TERA.render("pages/pvp.html", &context).respond()
 }

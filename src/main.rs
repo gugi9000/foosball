@@ -3,7 +3,6 @@
 
 extern crate rocket;
 extern crate bbt;
-extern crate rustc_serialize;
 extern crate rusqlite;
 extern crate toml;
 #[macro_use]
@@ -21,7 +20,7 @@ use std::io::Read;
 use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
-use rocket::request::{FormItems, FromFormValue, FromForm, Form};
+use rocket::request::{FormItems, Form};
 use rocket::response::{NamedFile, Response, Redirect};
 use rocket::http::Status;
 use rocket::Data;
@@ -68,7 +67,7 @@ const INITIAL_DATE_CAP: &'static str = "now','-90 day";
 
 pub type Res<'a> = Result<Response<'a>, Status>;
 
-#[derive(Debug, RustcDecodable)]
+#[derive(Debug, Deserialize)]
 pub struct Config {
     database: String,
     title: String,
@@ -86,9 +85,14 @@ fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value>
 
 lazy_static! {
     pub static ref TERA: Tera = {
-        let mut tera = compile_templates!("templates/**/*.*");
+        let mut tera = compile_templates!("templates/*");
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
+        tera.add_template_files(vec![("templates/base.html", Some("base.html")), ("templates/macros.html", Some("macros.html"))]).unwrap();
+        for entry in std::fs::read_dir("templates/pages").unwrap() {
+            let entry = entry.unwrap();
+            tera.add_template_file(entry.path(), Some(&format!("pages/{}", entry.file_name().to_string_lossy()))).unwrap();
+        }
         tera
     };
     pub static ref CONFIG: Config = {
@@ -106,7 +110,7 @@ lazy_static! {
         let mut buf = String::new();
         file.read_to_string(&mut buf).unwrap();
 
-        toml::decode_str(&buf).unwrap()
+        toml::from_str(&buf).unwrap()
     };
     static ref RATER: Rater = Rater::new(BETA / 6.0);
     pub static ref PLAYERS: Mutex<HashMap<i32, PlayerRating>> = Mutex::new(gen_players());
@@ -225,11 +229,12 @@ impl SerRating {
 }
 
 impl serde::Serialize for SerRating {
-    fn serialize<S: serde::Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Rating", 2)?;
-        serializer.serialize_struct_elt(&mut state, "mu", format!("{:.1}", self.0.mu()))?;
-        serializer.serialize_struct_elt(&mut state, "sigma", format!("{:.1}", self.0.sigma()))?;
-        serializer.serialize_struct_end(state)
+        state.serialize_field("mu", &format!("{:.1}", self.0.mu()))?;
+        state.serialize_field("sigma", &format!("{:.1}", self.0.sigma()))?;
+        state.end()
     }
 }
 

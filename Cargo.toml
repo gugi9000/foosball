@@ -5,14 +5,13 @@ authors = ["Bjarke Sørensen <bs@wasd.dk>",
     "Lucas Falch Sørensen <lucas@wasd.dk"]
 
 [dependencies]
-rocket = "0.1.2"
-rocket_codegen = "0.1.2"
+rocket = "0.2.2"
+rocket_codegen = "0.2.2"
 bbt = "0.1.0"
-rustc-serialize = "0.3.22"
-rusqlite = "0.7.3"
+rusqlite = "0.10.1"
 lazy_static = "0.2"
-tera = "0.6"
-toml = "0.2"
-serde = "0.8"
-serde_derive = "0.8"
-serde_json = "0.8"
+tera = "0.8"
+toml = "0.3"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
