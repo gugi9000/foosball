@@ -20,38 +20,13 @@ use std::io::Read;
 use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
-use rocket::request::{FormItems, Form};
-use rocket::response::{NamedFile, Response, Redirect};
-use rocket::http::Status;
+use rocket::request::{FormItems, FromFormValue, Form};
+use rocket::response::{Content, NamedFile, Response, Responder, Redirect};
+use rocket::http::{Status, ContentType};
 use rocket::Data;
 use rusqlite::Connection;
 use tera::{Tera, Context, Value};
 use bbt::{Rater, Rating};
-
-macro_rules! fromform_struct {
-    (struct $strct:ident {
-        $($field:ident: $ftype:ty,)*
-    }) => (
-        struct $strct {
-            $($field: $ftype,)*
-        }
-        impl<'a> FromForm<'a> for $strct {
-            type Error = &'a str;
-            fn from_form_string(form_string: &'a str) -> Result<Self, Self::Error> {
-                $(let mut $field = FromFormValue::default();)*
-                for (k, v) in FormItems(form_string) {
-                    match k {
-                        $(stringify!($field) => $field = Some(<$ftype>::from_form_value(v)?),)*
-                        _ => ()
-                    }
-                }
-                Ok($strct {
-                    $($field: $field.ok_or(concat!("no `", stringify!($field), "` found"))?),*
-                })
-            }
-        }
-    );
-}
 
 mod balls;
 mod errors;
@@ -66,6 +41,21 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const INITIAL_DATE_CAP: &'static str = "now','-90 day";
 
 pub type Res<'a> = Result<Response<'a>, Status>;
+pub type ContRes<'a> = Content<Res<'a>>;
+
+struct IgnoreField;
+
+impl<'a> FromFormValue<'a> for IgnoreField {
+    type Error = &'a str;
+
+    fn from_form_value(_: &'a str) -> Result<Self, Self::Error> {
+        Ok(IgnoreField)
+    }
+
+    fn default() -> Option<Self> {
+        Some(IgnoreField)
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -134,6 +124,10 @@ lazy_static! {
         c.add("league", &CONFIG.title);
         c
     };
+}
+
+pub fn respond_page(page: &'static str, c: Context) -> ContRes<'static> {
+    Content(ContentType::HTML, TERA.render(&format!("pages/{}.html", page), &c).respond())
 }
 
 pub fn lock_database() -> MutexGuard<'static, Connection> {
