@@ -1,8 +1,7 @@
 use ::*;
-use rocket::response::Responder;
 
 #[get("/players")]
-fn players<'a>() -> Res<'a> {
+fn players<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
@@ -16,11 +15,11 @@ fn players<'a>() -> Res<'a> {
     let mut context = create_context("players");
     context.add("players", &players);
 
-    TERA.render("pages/players.html", context).respond()
+    respond_page("players", context)
 }
 
 #[get("/player/<name>")]
-fn player<'a>(mut name: String) -> Res<'a> {
+fn player<'a>(mut name: String) -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -50,28 +49,26 @@ fn player<'a>(mut name: String) -> Res<'a> {
     }
     context.add("games", &games);
     context.add("name", &name);
-    TERA.render("pages/player.html", context).respond()
+    respond_page("player", context)
 }
 
 #[get("/newplayer")]
-fn newplayer<'a>() -> Res<'a> {
-    TERA.render("pages/newplayer.html", create_context("players")).respond()
+fn newplayer<'a>() -> ContRes<'a> {
+    respond_page("newplayer", create_context("players"))
+}
+
+#[derive(FromForm)]
+struct NewPlayerQuery {
+    name: String,
+    secret: String,
+    #[allow(dead_code)]
+    submit: IgnoreField
 }
 
 #[post("/newplayer/submit", data = "<f>")]
-fn submit_newplayer<'r>(f: Data) -> Res<'r> {
-    let mut v = Vec::new();
-    f.stream_to(&mut v).unwrap();
+fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
+    let NewPlayerQuery{name, secret, ..} = f.into_inner();
 
-    let mut name = Default::default();
-    let mut secret = Default::default();
-    for (k, v) in FormItems(&String::from_utf8(v).unwrap()) {
-        match k {
-            "name" => name = String::from_form_value(v).unwrap(),
-            "secret" => secret = String::from_form_value(v).unwrap(),
-            _ => (),
-        }
-    }
     let mut context = create_context("players");
     if secret != CONFIG.secret {
         context.add("fejl", &"Det indtastede kodeord er forkert 💩");
@@ -84,8 +81,8 @@ fn submit_newplayer<'r>(f: Data) -> Res<'r> {
             context.add("fejl", &"Den indtastede spiller eksisterer allerede 💩");
         } else {
             reset_ratings();
-            return Redirect::to("/").respond();
+            return Resp::red(Redirect::to("/"));
         }
     }
-    TERA.render("pages/newplayer_fejl.html", context).respond()
+    Resp::cont(respond_page("newplayer_fejl", context))
 }

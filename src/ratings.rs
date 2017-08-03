@@ -1,5 +1,4 @@
 use ::*;
-use rocket::response::Responder;
 
 pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
     let mut players = PLAYERS.lock().unwrap();
@@ -43,7 +42,7 @@ pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
 }
 
 #[get("/")]
-fn root<'a>() -> Res<'a> {
+fn root<'a>() -> ContRes<'a> {
     let mut context = create_context("root");
     context.add("players", &get_and_update_new_ratings());
 
@@ -69,18 +68,18 @@ fn root<'a>() -> Res<'a> {
         .map(Result::unwrap)
         .collect();
 
-    context.add("games" ,&games);
+    context.add("games", &games);
 
-// TODO Show latest X games and top Y players
-    TERA.render("pages/root.html", context).respond()
+    // TODO Show latest X games and top Y players
+    respond_page("root", context)
 }
 
 #[get("/ratings")]
-fn ratings<'a>() -> Res<'a> {
+fn ratings<'a>() -> ContRes<'a> {
     let mut context = create_context("rating");
     context.add("players", &get_and_update_new_ratings());
 
-    TERA.render("pages/ratings.html", context).respond()
+    respond_page("ratings", context)
 }
 
 #[get("/reset/ratings")]

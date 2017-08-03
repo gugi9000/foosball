@@ -1,8 +1,7 @@
 use ::*;
-use rocket::response::Responder;
 
 #[get("/balls")]
-fn balls<'a>() -> Res<'a> {
+fn balls<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
 
@@ -16,11 +15,11 @@ fn balls<'a>() -> Res<'a> {
     let mut context = create_context("balls");
     context.add("balls", &balls);
 
-    TERA.render("pages/balls.html", context).respond()
+    respond_page("balls", context)
 }
 
 #[get("/ball/<ball>")]
-fn ball<'a>(ball:String) -> Res<'a> {
+fn ball<'a>(ball:String) -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
@@ -55,5 +54,5 @@ fn ball<'a>(ball:String) -> Res<'a> {
     }
     context.add("games", &games);
     context.add("ball", &ball);
-    TERA.render("pages/ball.html", context).respond()
+    respond_page("ball", context)
 }

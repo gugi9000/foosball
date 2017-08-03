@@ -1,9 +1,8 @@
 use ::*;
-use rocket::response::Responder;
 
 #[get("/newgame")]
-fn newgame<'a>() -> Res<'a> {
-    TERA.render("pages/newgame.html", newgame_con()).respond()
+fn newgame<'a>() -> ContRes<'a> {
+    respond_page("newgame", newgame_con())
 }
 
 fn newgame_con() -> Context {
@@ -38,25 +37,26 @@ fn newgame_con() -> Context {
     context
 }
 
-fromform_struct!{
-    struct NewGame {
-        home: i32,
-        away: i32,
-        home_score: i32,
-        away_score: i32,
-        ball: i32,
-        secret: String,
-    }
+#[derive(FromForm)]
+struct NewGame {
+  home: i32,
+  away: i32,
+  home_score: i32,
+  away_score: i32,
+  ball: i32,
+  secret: String,
+  #[allow(dead_code)]
+  submit: IgnoreField
 }
 
 #[post("/newgame/submit", data = "<f>")]
-fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
+fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
         let mut context = newgame_con();
         context.add("fejl", &"Det indtastede kodeord er forkert 💩");
-        return TERA.render("pages/newgame_fejl.html", context).respond();
+        return Resp::cont(respond_page("newgame_fejl", context));
     }
 
     if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
@@ -65,7 +65,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
 
         context.add("fejl",
                        &"Den indtastede kamp er ikke lovlig 😜");
-        return TERA.render("pages/newgame_fejl.html", context).respond();
+        return Resp::cont(respond_page("newgame_fejl", context));
     }
 
     let res = lock_database().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
@@ -73,11 +73,11 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
                            &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
     println!("{:?}", res);
 
-    Redirect::to("/").respond()
+    Resp::red(Redirect::to("/"))
 }
 
 #[get("/games")]
-fn games<'a>() -> Res<'a> {
+fn games<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -103,5 +103,5 @@ fn games<'a>() -> Res<'a> {
     let mut context = create_context("games");
 
     context.add("games", &games);
-    TERA.render("pages/games.html", context).respond()
+    respond_page("games", context)
 }

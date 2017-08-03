@@ -1,14 +1,13 @@
 use ::*;
-use rocket::response::Responder;
 
 #[get("/analysis")]
-fn analysis<'a>() -> Res<'a> {
-    TERA.render("pages/analysis.html", create_context("analysis")).respond()
+fn analysis<'a>() -> ContRes<'a> {
+    respond_page("analysis", create_context("analysis"))
 }
 
 #[get("/ratingsdev")]
-fn ratingsdev<'a>() -> Res<'a> {
-    TERA.render("pages/ratingsdev.html", create_context("analysis")).respond()
+fn ratingsdev<'a>() -> ContRes<'a> {
+    respond_page("ratingsdev", create_context("analysis"))
 }
 
 use std::collections::BTreeMap;
@@ -56,7 +55,7 @@ fn developmenttsv<'a>() -> Res<'a> {
 
     let mut context = create_context("ratingsdev");
     context.add("ratingsdev", &data);
-    TERA.render("data/ratingsdev.tsv", context).respond()
+    tera_render("data/ratingsdev.tsv", context)
 }
 
 #[derive(Debug, Serialize)]
@@ -68,7 +67,7 @@ struct Ballstats {
 }
 
 #[get("/analysis/balls")]
-fn ballstats<'a>() -> Res<'a> {
+fn ballstats<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > datetime('now', '-90 day') GROUP BY ball_id order by balls desc , goals desc")
@@ -88,7 +87,7 @@ fn ballstats<'a>() -> Res<'a> {
     let mut context = create_context("analysis");
 
     context.add("ballstats", &ballstats);
-    TERA.render("pages/ballstats.html", context).respond()
+    respond_page("ballstats", context)
 }
 
 #[derive(Debug, Serialize)]
@@ -99,7 +98,7 @@ struct Homeawaystats {
     awaygoals: i32,
 }
 #[get("/analysis/homeaway")]
-fn homeaway<'a>() -> Res<'a> {
+fn homeaway<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games;")
@@ -118,11 +117,11 @@ fn homeaway<'a>() -> Res<'a> {
     let mut context = create_context("analysis");
 
     context.add("homeawaystats", &homeawaystats);
-    TERA.render("pages/homeawaystats.html", context).respond()
+    respond_page("homeawaystats", context)
 }
 
 #[get("/analysis/pvp")]
-fn pvpindex<'a>() -> Res<'a> {
+fn pvpindex<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
     let names: Vec<_> = stmt.query_map(&[], |row| {
@@ -138,11 +137,11 @@ fn pvpindex<'a>() -> Res<'a> {
     let mut context = create_context("analysis");
     context.add("names", &names);
 
-    TERA.render("pages/pvpindex.html", context).respond()
+    respond_page("pvpindex", context)
 }
 
 #[get("/analysis/pvp/<p1>/<p2>")]
-fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
+fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -203,5 +202,5 @@ fn pvp<'a>(p1: i32, p2: i32) -> Res<'a> {
 
     context.add("pvp", &pvp);
     context.add("map", &map);
-    TERA.render("pages/pvp.html", context).respond()
+    respond_page("pvp", context)
 }

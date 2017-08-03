@@ -1,9 +1,8 @@
-#![feature(plugin, custom_derive, conservative_impl_trait)]
+#![feature(custom_derive, plugin)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
 extern crate bbt;
-extern crate rustc_serialize;
 extern crate rusqlite;
 extern crate toml;
 #[macro_use]
@@ -21,38 +20,12 @@ use std::io::Read;
 use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
-use rocket::request::{FormItems, FromFormValue, FromForm, Form};
-use rocket::response::{NamedFile, Response, Redirect};
-use rocket::http::Status;
-use rocket::Data;
+use rocket::request::{Request, FromFormValue, Form};
+use rocket::response::{Content, NamedFile, Response, Responder, Redirect};
+use rocket::http::{RawStr, Status, ContentType};
 use rusqlite::Connection;
 use tera::{Tera, Context, Value};
 use bbt::{Rater, Rating};
-
-macro_rules! fromform_struct {
-    (struct $strct:ident {
-        $($field:ident: $ftype:ty,)*
-    }) => (
-        struct $strct {
-            $($field: $ftype,)*
-        }
-        impl<'a> FromForm<'a> for $strct {
-            type Error = &'a str;
-            fn from_form_string(form_string: &'a str) -> Result<Self, Self::Error> {
-                $(let mut $field = FromFormValue::default();)*
-                for (k, v) in FormItems(form_string) {
-                    match k {
-                        $(stringify!($field) => $field = Some(<$ftype>::from_form_value(v)?),)*
-                        _ => ()
-                    }
-                }
-                Ok($strct {
-                    $($field: $field.ok_or(concat!("no `", stringify!($field), "` found"))?),*
-                })
-            }
-        }
-    );
-}
 
 mod balls;
 mod errors;
@@ -67,8 +40,46 @@ const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const INITIAL_DATE_CAP: &'static str = "now','-90 day";
 
 pub type Res<'a> = Result<Response<'a>, Status>;
+pub type ContRes<'a> = Content<Res<'a>>;
 
-#[derive(Debug, RustcDecodable)]
+struct IgnoreField;
+
+impl<'a> FromFormValue<'a> for IgnoreField {
+    type Error = &'a str;
+
+    fn from_form_value(_: &'a RawStr) -> Result<Self, Self::Error> {
+        Ok(IgnoreField)
+    }
+
+    fn default() -> Option<Self> {
+        Some(IgnoreField)
+    }
+}
+
+pub enum Resp<'a> {
+    ContRes(ContRes<'a>),
+    Redirect(Redirect)
+}
+
+impl<'a> Resp<'a> {
+    pub fn cont(cont: ContRes<'a>) -> Self {
+        Resp::ContRes(cont)
+    }
+    pub fn red(red: Redirect) -> Self {
+        Resp::Redirect(red)
+    }
+}
+
+impl<'a> Responder<'a> for Resp<'a> {
+    fn respond_to(self, req: &Request) -> Res<'a> {
+        match self {
+            Resp::ContRes(a) => a.respond_to(req),
+            Resp::Redirect(a) => a.respond_to(req),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Config {
     database: String,
     title: String,
@@ -85,10 +96,15 @@ fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value>
 }
 
 lazy_static! {
-    pub static ref TERA: Tera = {
-        let mut tera = compile_templates!("templates/**/*.*");
+    static ref TERA: Tera = {
+        let mut tera = compile_templates!("templates/*");
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
+        tera.add_template_files(vec![("templates/base.html", Some("base.html")), ("templates/macros.html", Some("macros.html"))]).unwrap();
+        for entry in std::fs::read_dir("templates/pages").unwrap() {
+            let entry = entry.unwrap();
+            tera.add_template_file(entry.path(), Some(&format!("pages/{}", entry.file_name().to_string_lossy()))).unwrap();
+        }
         tera
     };
     pub static ref CONFIG: Config = {
@@ -106,7 +122,7 @@ lazy_static! {
         let mut buf = String::new();
         file.read_to_string(&mut buf).unwrap();
 
-        toml::decode_str(&buf).unwrap()
+        toml::from_str(&buf).unwrap()
     };
     static ref RATER: Rater = Rater::new(BETA / 6.0);
     pub static ref PLAYERS: Mutex<HashMap<i32, PlayerRating>> = Mutex::new(gen_players());
@@ -130,6 +146,18 @@ lazy_static! {
         c.add("league", &CONFIG.title);
         c
     };
+}
+
+pub fn tera_render(template: &str, c: Context) -> Res<'static> {
+    use std::io::Cursor;
+    match TERA.render(template, &c) {
+        Ok(s) => Response::build().sized_body(Cursor::new(s)).ok(),
+        Err(_) => Err(Status::InternalServerError)
+    }
+}
+
+pub fn respond_page(page: &'static str, c: Context) -> ContRes<'static> {
+    Content(ContentType::HTML, tera_render(&format!("pages/{}.html", page), c))
 }
 
 pub fn lock_database() -> MutexGuard<'static, Connection> {
@@ -225,11 +253,12 @@ impl SerRating {
 }
 
 impl serde::Serialize for SerRating {
-    fn serialize<S: serde::Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Rating", 2)?;
-        serializer.serialize_struct_elt(&mut state, "mu", format!("{:.1}", self.0.mu()))?;
-        serializer.serialize_struct_elt(&mut state, "sigma", format!("{:.1}", self.0.sigma()))?;
-        serializer.serialize_struct_end(state)
+        state.serialize_field("mu", &format!("{:.1}", self.0.mu()))?;
+        state.serialize_field("sigma", &format!("{:.1}", self.0.sigma()))?;
+        state.end()
     }
 }
 
