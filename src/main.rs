@@ -95,11 +95,17 @@ fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value>
     }
 }
 
+fn abs_filter(value: Value, _: HashMap<String, Value>) -> tera::Result<Value> {
+    let num = try_get_value!("abs", "value", i32, value);
+    Ok(num.abs().into())
+}
+
 lazy_static! {
     static ref TERA: Tera = {
         let mut tera = compile_templates!("templates/*");
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
+        tera.register_filter("abs", abs_filter);
         tera.add_template_files(vec![("templates/base.html", Some("base.html")), ("templates/macros.html", Some("macros.html"))]).unwrap();
         for entry in std::fs::read_dir("templates/pages").unwrap() {
             let entry = entry.unwrap();
@@ -269,6 +275,7 @@ type DateTime = String;
 pub struct PlayerRating {
     pub name: String,
     pub ratings_history: Vec<(DateTime, SerRating)>,
+    pub streak: i16,
     pub rating: SerRating,
     pub kampe: u32,
     pub vundne: u32,
@@ -280,6 +287,7 @@ pub struct PlayerRating {
 #[derive(Debug, Clone, Serialize)]
 pub struct PlayerData {
     pub name: String,
+    pub streak: i16,
     pub rating: SerRating,
     pub kampe: u32,
     pub vundne: u32,
@@ -298,11 +306,20 @@ impl PlayerRating {
             rating: SerRating(Rating::new(BETA, BETA / 3.0)),
             ratings_history: Vec::new(),
             kampe: 0,
+            streak: 0,
             vundne: 0,
             tabte: 0,
             eggs: 0,
             aces: 0,
-
+        }
+    }
+    fn mod_streak(&mut self, won: bool) {
+        use std::cmp::Ordering::*;
+        match (self.streak.cmp(&0), won) {
+            (Less, false) => self.streak -= 1,
+            (Greater, true) => self.streak += 1,
+            (_, false)  => self.streak = -1,
+            (_, true) => self.streak = 1,
         }
     }
     fn duel(&mut self, time: DateTime, o: Rating, won: bool) {
@@ -312,6 +329,7 @@ impl PlayerRating {
         self.rating.0 = a;
 
         self.kampe += 1;
+        self.mod_streak(won);
         if won {
             self.vundne += 1;
         } else {
@@ -324,6 +342,7 @@ impl PlayerRating {
             name: self.name.clone(),
             rating: self.rating.clone(),
             kampe: self.kampe,
+            streak: self.streak,
             vundne: self.vundne,
             tabte: self.tabte,
             eggs: self.eggs,
