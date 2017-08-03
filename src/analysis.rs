@@ -13,7 +13,7 @@ fn ratingsdev<'a>() -> ContRes<'a> {
 use std::collections::BTreeMap;
 
 #[get("/data/ratingsdev.tsv")]
-fn developmenttsv<'a>() -> Res<'a> {
+fn developmenttsv() -> String {
     // HACK This seems a bit weird, but it works
     let mut ratings_history = BTreeMap::<String, HashMap<i32, f64>>::new();
 
@@ -53,9 +53,7 @@ fn developmenttsv<'a>() -> Res<'a> {
         data.push('\n');
     }
 
-    let mut context = create_context("ratingsdev");
-    context.add("ratingsdev", &data);
-    tera_render("data/ratingsdev.tsv", context)
+    data
 }
 
 #[derive(Debug, Serialize)]
