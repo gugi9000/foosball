@@ -1,5 +1,4 @@
 use ::*;
-use rocket::response::Responder;
 
 #[get("/newgame")]
 fn newgame<'a>() -> ContRes<'a> {
@@ -51,13 +50,13 @@ struct NewGame {
 }
 
 #[post("/newgame/submit", data = "<f>")]
-fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
+fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
         let mut context = newgame_con();
         context.add("fejl", &"Det indtastede kodeord er forkert 💩");
-        return respond_page("newgame_fejl", context).respond();
+        return Resp::cont(respond_page("newgame_fejl", context));
     }
 
     if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
@@ -66,7 +65,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
 
         context.add("fejl",
                        &"Den indtastede kamp er ikke lovlig 😜");
-        return respond_page("newgame_fejl", context).respond();
+        return Resp::cont(respond_page("newgame_fejl", context));
     }
 
     let res = lock_database().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
@@ -74,7 +73,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Res<'a> {
                            &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
     println!("{:?}", res);
 
-    Redirect::to("/").respond()
+    Resp::red(Redirect::to("/"))
 }
 
 #[get("/games")]

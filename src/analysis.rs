@@ -55,7 +55,7 @@ fn developmenttsv<'a>() -> Res<'a> {
 
     let mut context = create_context("ratingsdev");
     context.add("ratingsdev", &data);
-    TERA.render("data/ratingsdev.tsv", &context).respond()
+    tera_render("data/ratingsdev.tsv", context)
 }
 
 #[derive(Debug, Serialize)]

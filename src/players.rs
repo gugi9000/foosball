@@ -1,5 +1,4 @@
 use ::*;
-use rocket::response::Responder;
 
 #[get("/players")]
 fn players<'a>() -> ContRes<'a> {
@@ -62,12 +61,12 @@ fn newplayer<'a>() -> ContRes<'a> {
 struct NewPlayerQuery {
     name: String,
     secret: String,
-    #[ignore(dead_code)]
+    #[allow(dead_code)]
     submit: IgnoreField
 }
 
 #[post("/newplayer/submit", data = "<f>")]
-fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Res<'r> {
+fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
     let NewPlayerQuery{name, secret, ..} = f.into_inner();
 
     let mut context = create_context("players");
@@ -82,8 +81,8 @@ fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Res<'r> {
             context.add("fejl", &"Den indtastede spiller eksisterer allerede 💩");
         } else {
             reset_ratings();
-            return Redirect::to("/").respond();
+            return Resp::red(Redirect::to("/"));
         }
     }
-    respond_page("newplayer_fejl", context).respond()
+    Resp::cont(respond_page("newplayer_fejl", context))
 }

@@ -1,4 +1,4 @@
-#![feature(plugin, custom_derive, conservative_impl_trait)]
+#![feature(custom_derive, plugin)]
 #![plugin(rocket_codegen)]
 
 extern crate rocket;
@@ -20,10 +20,9 @@ use std::io::Read;
 use std::cmp::Ordering::{Greater, Less};
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
-use rocket::request::{FormItems, FromFormValue, Form};
+use rocket::request::{Request, FromFormValue, Form};
 use rocket::response::{Content, NamedFile, Response, Responder, Redirect};
-use rocket::http::{Status, ContentType};
-use rocket::Data;
+use rocket::http::{RawStr, Status, ContentType};
 use rusqlite::Connection;
 use tera::{Tera, Context, Value};
 use bbt::{Rater, Rating};
@@ -48,12 +47,35 @@ struct IgnoreField;
 impl<'a> FromFormValue<'a> for IgnoreField {
     type Error = &'a str;
 
-    fn from_form_value(_: &'a str) -> Result<Self, Self::Error> {
+    fn from_form_value(_: &'a RawStr) -> Result<Self, Self::Error> {
         Ok(IgnoreField)
     }
 
     fn default() -> Option<Self> {
         Some(IgnoreField)
+    }
+}
+
+pub enum Resp<'a> {
+    ContRes(ContRes<'a>),
+    Redirect(Redirect)
+}
+
+impl<'a> Resp<'a> {
+    pub fn cont(cont: ContRes<'a>) -> Self {
+        Resp::ContRes(cont)
+    }
+    pub fn red(red: Redirect) -> Self {
+        Resp::Redirect(red)
+    }
+}
+
+impl<'a> Responder<'a> for Resp<'a> {
+    fn respond_to(self, req: &Request) -> Res<'a> {
+        match self {
+            Resp::ContRes(a) => a.respond_to(req),
+            Resp::Redirect(a) => a.respond_to(req),
+        }
     }
 }
 
@@ -74,7 +96,7 @@ fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value>
 }
 
 lazy_static! {
-    pub static ref TERA: Tera = {
+    static ref TERA: Tera = {
         let mut tera = compile_templates!("templates/*");
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
@@ -126,8 +148,16 @@ lazy_static! {
     };
 }
 
+pub fn tera_render(template: &str, c: Context) -> Res<'static> {
+    use std::io::Cursor;
+    match TERA.render(template, &c) {
+        Ok(s) => Response::build().sized_body(Cursor::new(s)).ok(),
+        Err(_) => Err(Status::InternalServerError)
+    }
+}
+
 pub fn respond_page(page: &'static str, c: Context) -> ContRes<'static> {
-    Content(ContentType::HTML, TERA.render(&format!("pages/{}.html", page), &c).respond())
+    Content(ContentType::HTML, tera_render(&format!("pages/{}.html", page), c))
 }
 
 pub fn lock_database() -> MutexGuard<'static, Connection> {
