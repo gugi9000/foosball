@@ -1,6 +1,6 @@
 use ::*;
 
-pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
+pub fn update_new_ratings() {
     let mut players = PLAYERS.lock().unwrap();
 
     for g in get_games() {
@@ -30,6 +30,11 @@ pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
             }
         }
     }
+}
+
+pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
+    update_new_ratings();
+    let players = PLAYERS.lock().unwrap();
 
     let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).filter(|p| p.kampe > 0).collect();
     ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
