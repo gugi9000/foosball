@@ -1,5 +1,4 @@
 use ::*;
-//use rocket::response::Responder;
 
 #[get("/static/<file..>")]
 fn static_handler(file: PathBuf) -> Option<NamedFile> {
@@ -9,4 +8,9 @@ fn static_handler(file: PathBuf) -> Option<NamedFile> {
 #[get("/favicon.ico")]
 fn favicon_handler() -> Option<NamedFile> {
     static_handler(PathBuf::new().join("dynateam.ico"))
+}
+
+#[get("/robots.txt")]
+fn robots_handler() -> Option<NamedFile> {
+    static_handler(PathBuf::new().join("robots.txt"))
 }

@@ -343,6 +343,7 @@ fn main() {
                        analysis::pvp,
                        analysis::pvpindex,
                        analysis::ratingsdev,
+                       statics::robots_handler,
                        statics::favicon_handler,
                        games::games,
                        games::newgame,
