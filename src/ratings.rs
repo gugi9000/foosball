@@ -31,13 +31,12 @@ pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
         }
     }
 
-    let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).collect();
+    let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).filter(|p| p.kampe > 0).collect();
     ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
         Less
     } else {
         Greater
     });
-    ps.retain(|a| a.kampe != 0);
     ps
 }
 

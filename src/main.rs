@@ -255,9 +255,10 @@ impl SerRating {
 impl serde::Serialize for SerRating {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("Rating", 2)?;
+        let mut state = serializer.serialize_struct("Rating", 3)?;
         state.serialize_field("mu", &format!("{:.1}", self.0.mu()))?;
         state.serialize_field("sigma", &format!("{:.1}", self.0.sigma()))?;
+        state.serialize_field("score", &format!("{:.1}", self.get_rating()))?;
         state.end()
     }
 }

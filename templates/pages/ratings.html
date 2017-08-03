@@ -14,7 +14,7 @@ Stillingen
     <tr>
       <th>Placering</th>
       <th>Navn</th>
-      <th>Rating (µ±σ) </th>
+      <th>Rating</th>
       <th>Kampe</th>
       <th>Vundne</th>
       <th>Tabte</th>
@@ -26,7 +26,7 @@ Stillingen
       <tr>
         <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
         <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>{% else %}{{p.name|escape}}{% endif %}</a></td>
-        <td>{{p.rating.mu}}±{{p.rating.sigma}}</td>
+        <td><abbr title="{{p.rating.mu}}±{{p.rating.sigma}}">{{p.rating.score}}</abbr></td>
         <td>{{p.kampe}}</td>
         <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
         <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte| round}} %">{{p.tabte}}</abbr></td>
