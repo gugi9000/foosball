@@ -50,6 +50,11 @@ Foosball Dashboard
     {% endfor %}
   </tbody>
 </table>
+
+<p>
+{{macros::newgame()}}
+</p>
+
 <h3>Seneste kampe</h3>
 <table class="table table-striped">
   <thead>
@@ -75,8 +80,5 @@ Foosball Dashboard
     {% endfor %}
   </tbody>
 </table>
-<p>
-{{macros::newgame()}}
-</p>
 <p><label for="auto-refresh">Auto-refresh: <input type="checkbox" id="auto-refresh" checked></label></p>
 {% endblock content %}
