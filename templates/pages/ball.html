@@ -27,7 +27,7 @@ Kampe med {{ball}}
         <td><a href="/player/{{g.home}}">{{g.home | escape}}</a></td>
         <td><a href="/player/{{g.away}}">{{g.away | escape}}</a></td>
         <td>
-            {{g.home_score | egg(person=g.home|escape)}} &ndash; {{g.away_score | egg(person=g.away|escape)}}
+            {{g.home_score | egg}} &ndash; {{g.away_score | egg}}
         </td>
         <td><img src="/static/balls/{{g.ball|urlencode}}.png" alt="{{g.ball_name}}"/></td>
         <td>{{g.dato}}</td>

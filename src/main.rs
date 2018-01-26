@@ -86,10 +86,10 @@ pub struct Config {
     secret: String,
 }
 
-fn egg_filter(value: Value, args: HashMap<String, Value>) -> tera::Result<Value> {
+fn egg_filter(value: Value, _args: HashMap<String, Value>) -> tera::Result<Value> {
     let goals = try_get_value!("egg", "value", i32, value);
     if goals == 0 {
-        Ok(Value::String(format!(r#"<img src="/static/egg.png" alt="{} fik æg!">"#, try_get_value!("egg", "person", String, args["person"]))))
+        Ok(Value::String("🥚".to_owned()))
     } else {
         Ok(value)
     }
