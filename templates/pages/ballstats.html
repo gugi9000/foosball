@@ -22,7 +22,7 @@ Boldstatistik
   <tbody>
     {% for b in ballstats %}
       <tr>
-        <td><a href="/ball/{{b.name}}"><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}"/></a> {{b.name|escape}}</td>
+        <td><a href="/ball/{{b.name}}"><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}"/> {{b.name|escape}}</a></td>
         <td>{{b.games}}</td>
         <td>{{b.goals}}</td>
       </tr>
