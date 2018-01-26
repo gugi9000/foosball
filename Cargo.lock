@@ -115,7 +115,7 @@ dependencies = [
 
 [[package]]
 name = "foosball"
-version = "0.7.20"
+version = "0.7.22"
 dependencies = [
  "bbt 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
