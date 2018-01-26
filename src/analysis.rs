@@ -7,7 +7,11 @@ fn analysis<'a>() -> ContRes<'a> {
 
 #[get("/ratingsdev")]
 fn ratingsdev<'a>() -> ContRes<'a> {
-    respond_page("ratingsdev", create_context("analysis"))
+    let mut context = create_context("analysis");
+    context.add("ace_egg_modifier", &CONFIG.ace_egg_modifier);
+    context.add("streak_modifier", &CONFIG.streak_modifier);
+   
+    respond_page("ratingsdev", context)
 }
 
 use std::collections::BTreeMap;

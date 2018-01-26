@@ -81,7 +81,8 @@ fn root<'a>() -> ContRes<'a> {
 fn ratings<'a>() -> ContRes<'a> {
     let mut context = create_context("rating");
     context.add("players", &get_and_update_new_ratings());
-
+    context.add("ace_egg_modifier", &CONFIG.ace_egg_modifier);
+    context.add("streak_modifier", &CONFIG.streak_modifier);
     respond_page("ratings", context)
 }
 
