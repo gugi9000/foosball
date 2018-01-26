@@ -28,10 +28,11 @@ Udvikling af scores
 <p>
   Scoren er en kombination af µ (rating) og σ (sigma),
   så der vises den dårligst mulige score (µ-3σ).
+  Et streaks giver ±10 point på n&aelig;r det den f&oslash;rste (streak på +5 giver +40).
+  🥚 koster 100. 🏆 giver +100.
 </p>
-<script src="http://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
-
 var svg = d3.select("svg"),
     margin = {top: 20, right: 80, bottom: 30, left: 50},
     width = svg.attr("width") - margin.left - margin.right,
