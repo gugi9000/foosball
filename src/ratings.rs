@@ -74,8 +74,7 @@ fn root<'a>() -> ContRes<'a> {
 
     context.add("games", &games);
 
-    // TODO Show latest X games and top Y players
-    respond_page("root", context)
+     respond_page("root", context)
 }
 
 #[get("/ratings")]
