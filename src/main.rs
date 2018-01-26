@@ -102,15 +102,10 @@ fn abs_filter(value: Value, _: HashMap<String, Value>) -> tera::Result<Value> {
 
 lazy_static! {
     static ref TERA: Tera = {
-        let mut tera = compile_templates!("templates/*");
+        let mut tera = compile_templates!("templates/**/*");
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
         tera.register_filter("abs", abs_filter);
-        tera.add_template_files(vec![("templates/base.html", Some("base.html")), ("templates/macros.html", Some("macros.html"))]).unwrap();
-        for entry in std::fs::read_dir("templates/pages").unwrap() {
-            let entry = entry.unwrap();
-            tera.add_template_file(entry.path(), Some(&format!("pages/{}", entry.file_name().to_string_lossy()))).unwrap();
-        }
         tera
     };
     pub static ref CONFIG: Config = {
