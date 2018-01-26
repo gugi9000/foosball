@@ -1,3 +1,5 @@
 database = "ratings.db"
 title = "Dynateam Foosball"
 secret = "jeg er sikker"
+ace_egg_modifier = 100
+streak_modifier = 10

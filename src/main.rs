@@ -84,6 +84,8 @@ pub struct Config {
     database: String,
     title: String,
     secret: String,
+    ace_egg_modifier: f64,
+    streak_modifier: f64,
 }
 
 fn egg_filter(value: Value, _args: HashMap<String, Value>) -> tera::Result<Value> {
@@ -245,21 +247,32 @@ pub fn create_context(current_page: &str) -> Context {
 }
 
 #[derive(Debug, Clone)]
-pub struct SerRating(Rating);
+pub struct AggregatedRating {
+    rating: Rating,
+    modifier: f64
+}
 
-impl SerRating {
-    fn get_rating(&self) -> f64 {
-        self.0.mu() - 3. * self.0.sigma()
+impl AggregatedRating {
+    fn from_player(p: &PlayerRating) -> Self {
+        let streak = p.streak as f64;
+        AggregatedRating {
+            rating: p.rating.clone(),
+            modifier: CONFIG.ace_egg_modifier * (p.aces as f64 - p.eggs as f64)
+                + CONFIG.streak_modifier * (streak - streak.signum()),
+        }
+    }
+    fn get_score(&self) -> f64 {
+        self.rating.mu() - 3. * self.rating.sigma() + self.modifier
     }
 }
 
-impl serde::Serialize for SerRating {
+impl serde::Serialize for AggregatedRating {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("Rating", 3)?;
-        state.serialize_field("mu", &format!("{:.1}", self.0.mu()))?;
-        state.serialize_field("sigma", &format!("{:.1}", self.0.sigma()))?;
-        state.serialize_field("score", &format!("{:.1}", self.get_rating()))?;
+        state.serialize_field("mu", &format!("{:.2}", self.rating.mu()))?;
+        state.serialize_field("sigma", &format!("{:.2}", self.rating.sigma()))?;
+        state.serialize_field("score", &format!("{:.1}", self.get_score()))?;
         state.end()
     }
 }
@@ -269,9 +282,9 @@ type DateTime = String;
 #[derive(Debug, Clone)]
 pub struct PlayerRating {
     pub name: String,
-    pub ratings_history: Vec<(DateTime, SerRating)>,
+    pub score_history: Vec<(DateTime, f64)>,
     pub streak: i16,
-    pub rating: SerRating,
+    pub rating: Rating,
     pub kampe: u32,
     pub vundne: u32,
     pub tabte: u32,
@@ -283,7 +296,7 @@ pub struct PlayerRating {
 pub struct PlayerData {
     pub name: String,
     pub streak: i16,
-    pub rating: SerRating,
+    pub rating: AggregatedRating,
     pub kampe: u32,
     pub vundne: u32,
     pub tabte: u32,
@@ -298,8 +311,8 @@ impl PlayerRating {
     fn new<S: ToString>(name: S) -> Self {
         PlayerRating {
             name: name.to_string(),
-            rating: SerRating(Rating::new(BETA, BETA / 3.0)),
-            ratings_history: Vec::new(),
+            rating: Rating::new(BETA, BETA / 3.0),
+            score_history: Vec::new(),
             kampe: 0,
             streak: 0,
             vundne: 0,
@@ -318,10 +331,10 @@ impl PlayerRating {
         }
     }
     fn duel(&mut self, time: DateTime, o: Rating, won: bool) {
-        let a = replace(&mut self.rating.0, Default::default());
+        let a = replace(&mut self.rating, Default::default());
 
         let (a, _) = RATER.duel(a, o, if won { Win } else { Loss });
-        self.rating.0 = a;
+        self.rating = a;
 
         self.kampe += 1;
         self.mod_streak(won);
@@ -330,12 +343,14 @@ impl PlayerRating {
         } else {
             self.tabte += 1;
         }
-        self.ratings_history.push((time, self.rating.clone()))
+        let rat = AggregatedRating::from_player(&self);
+        self.score_history.push((time, rat.get_score()));
     }
     fn to_data(&self) -> PlayerData {
+        let rating = AggregatedRating::from_player(self);
         PlayerData {
             name: self.name.clone(),
-            rating: self.rating.clone(),
+            rating,
             kampe: self.kampe,
             streak: self.streak,
             vundne: self.vundne,

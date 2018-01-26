@@ -4,8 +4,8 @@ pub fn update_new_ratings() {
     let mut players = PLAYERS.lock().unwrap();
 
     for g in get_games() {
-        let away_rating = players[&g.away].rating.0.clone();
-        let home_rating = players[&g.home].rating.0.clone();
+        let away_rating = players[&g.away].rating.clone();
+        let home_rating = players[&g.home].rating.clone();
 
         {
             let home_player = players.get_mut(&g.home).unwrap();
@@ -37,7 +37,7 @@ pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
     let players = PLAYERS.lock().unwrap();
 
     let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).filter(|p| p.kampe > 0).collect();
-    ps.sort_by(|a, b| if b.rating.get_rating() < a.rating.get_rating() {
+    ps.sort_by(|a, b| if b.rating.get_score() < a.rating.get_score() {
         Less
     } else {
         Greater

@@ -27,10 +27,10 @@ fn developmenttsv() -> String {
         data.push_str(&player.name);
         names.push((id, player.name.clone()));
 
-        for &(ref date, ref rating) in &player.ratings_history {
+        for &(ref date, rating) in &player.score_history {
             let date = format!("{}{}{}T{}", &date[0..4], &date[5..7], &date[8..10], &date[11..16]);
             let ratings_for_date = ratings_history.entry(date).or_insert_with(HashMap::new);
-            ratings_for_date.insert(id, rating.get_rating());
+            ratings_for_date.insert(id, rating);
         }
     }
     data.push('\n');
