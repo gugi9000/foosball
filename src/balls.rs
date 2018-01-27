@@ -56,3 +56,39 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
     context.add("ball", &ball);
     respond_page("ball", context)
 }
+
+#[get("/newball")]
+fn newball<'a>() -> ContRes<'a> {
+    respond_page("newball", create_context("balls"))
+}
+
+#[derive(FromForm)]
+struct NewBallQuery {
+    name: String,
+    img: String,
+    secret: String,
+    #[allow(dead_code)]
+    submit: IgnoreField
+}
+
+#[post("/newball/submit", data = "<f>")]
+fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
+    let NewBallQuery{name, img, secret, ..} = f.into_inner();
+
+    let mut context = create_context("balls");
+    if secret != CONFIG.secret {
+        context.add("fejl", &"Det indtastede kodeord er forkert 💩");
+    } else if name.is_empty() {
+        context.add("fejl", &"Den indtastede bold er ikke lovlig 😜");
+    } else {
+        let n = lock_database().execute("INSERT INTO balls (name, img) VALUES (?, ?)", &[&img, &name]).unwrap();
+
+        if n == 0 {
+            context.add("fejl", &"Den indtastede bold eksisterer allerede 💩");
+        } else {
+            reset_ratings();
+            return Resp::red(Redirect::to("/"));
+        }
+    }
+    Resp::cont(respond_page("newball_fejl", context))
+}
