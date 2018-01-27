@@ -380,6 +380,8 @@ fn main() {
                        games::submit_newgame,
                        balls::balls,
                        balls::ball,
+                       balls::newball,
+                       balls::submit_newball,
                        players::players,
                        players::player,
                        players::newplayer,

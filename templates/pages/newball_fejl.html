@@ -1,0 +1,14 @@
+{% extends "pages/newball.html" %}
+
+{% block header %}
+Fejl ved registrering af ny bold
+{% endblock header %}
+{% block title %}
+Fejl: Ny bold
+{% endblock title %}
+{% block content %}
+<div class="alert alert-danger" role="alert">
+  <strong>Prøv igen!</strong> {{fejl}}
+</div>
+{{ super() }}
+{% endblock content %}
