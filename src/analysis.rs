@@ -72,7 +72,7 @@ struct Ballstats {
 fn ballstats<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
-        conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > datetime('now', '-90 day') GROUP BY ball_id order by balls desc , goals desc")
+        conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
             .unwrap();
     let ballstats: Vec<_> = stmt.query_map(&[], |row| {
         Ballstats {
@@ -121,7 +121,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato, home_id FROM games g \
                       WHERE (home_id = ?1 and away_id = ?2) or (home_id = ?2 and away_id = ?1) \
-                      and dato > datetime('now', '-90 day') ORDER BY dato DESC")
+                      and dato > date('now','start of month') ORDER BY dato DESC")
             .unwrap();
 
     let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));

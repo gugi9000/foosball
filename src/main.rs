@@ -37,7 +37,7 @@ mod analysis;
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-const INITIAL_DATE_CAP: &'static str = "now','-90 day";
+const INITIAL_DATE_CAP: &'static str = "now','start of month";
 
 pub type Res<'a> = Result<Response<'a>, Status>;
 pub type ContRes<'a> = Content<Res<'a>>;
