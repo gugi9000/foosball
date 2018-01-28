@@ -11,8 +11,10 @@ Spillere
 <p>
 {{macros::newplayer()}}
 </p>
-
-<p><a href="/pvp">Spiller vs. spiller</a></p>
+<ul>
+  <li><a href="/ratings">Stilling</a></li>
+  <li><a href="/pvp">PvP: Spiller vs. spiller</a></li>
+</ul>
 
 <table class="table table-striped">
   <thead>
@@ -25,7 +27,7 @@ Spillere
   <tbody>
     {% for p in players %}
       <tr>
-        <td><img src="/static/players/{{p.name|urlencode}}.png" height="100" alt="{{p.name}}"}</td>
+        <td><img src="/static/players/{{p.name|urlencode}}.png" height="70" alt="{{p.name}}"}</td>
         <td><a href="/player/{{p.name}}">{{p.name | escape}}</a></td>
         <td>-</td>
       </tr>
