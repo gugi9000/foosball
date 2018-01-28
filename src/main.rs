@@ -369,7 +369,6 @@ fn main() {
                routes![analysis::analysis,
                        analysis::ballstats,
                        analysis::developmenttsv,
-                       analysis::homeaway,
                        analysis::pvp,
                        analysis::pvpindex,
                        analysis::ratingsdev,

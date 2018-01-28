@@ -92,36 +92,6 @@ fn ballstats<'a>() -> ContRes<'a> {
     respond_page("ballstats", context)
 }
 
-#[derive(Debug, Serialize)]
-struct Homeawaystats {
-    homewins: i32,
-    awaywins: i32,
-    homegoals: i32,
-    awaygoals: i32,
-}
-#[get("/analysis/homeaway")]
-fn homeaway<'a>() -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games;")
-            .unwrap();
-    let homeawaystats: Vec<_> = stmt.query_map(&[], |row| {
-        Homeawaystats {
-            homewins: row.get(0),
-            awaywins: row.get(1),
-            homegoals: row.get(2),
-            awaygoals: row.get(3),
-        }
-    })
-    .unwrap()
-    .map(Result::unwrap)
-    .collect();
-    let mut context = create_context("analysis");
-
-    context.add("homeawaystats", &homeawaystats);
-    respond_page("homeawaystats", context)
-}
-
 #[get("/analysis/pvp")]
 fn pvpindex<'a>() -> ContRes<'a> {
     let conn = lock_database();
