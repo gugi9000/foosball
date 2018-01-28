@@ -69,8 +69,16 @@ Foosball Dashboard
   <tbody>
     {% for g in games %}
       <tr>
-        <td><a href="/player/{{g.home}}">{{g.home | escape}}</a></td>
-        <td><a href="/player/{{g.away}}">{{g.away | escape}}</a></td>
+          <td><a href="/player/{{g.home}}">
+            {% if g.home_score == 10 %}<strong>{% endif %}
+            {{g.home | escape}}
+            {% if g.home_score == 10 %}</strong>{% endif %}
+            </a></td>
+          <td><a href="/player/{{g.away}}">
+            {% if g.away_score == 10 %}<strong>{% endif %}
+                {{g.away | escape}}
+            {% if g.away_score == 10 %}<strong>{% endif %}
+             </a></td>
         <td>
             {{g.home_score | egg}} &ndash; {{g.away_score | egg}}
         </td>
