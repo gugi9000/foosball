@@ -368,7 +368,6 @@ fn main() {
     rocket::ignite()
         .mount("/",
                routes![analysis::analysis,
-                       analysis::ballstats,
                        analysis::developmenttsv,
                        pvp::pvp,
                        pvp::pvpindex,
@@ -378,6 +377,7 @@ fn main() {
                        games::games,
                        games::newgame,
                        games::submit_newgame,
+                       balls::ballstats,
                        balls::balls,
                        balls::ball,
                        balls::newball,

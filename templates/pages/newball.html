@@ -7,6 +7,26 @@ Ny Bold
 Ny Bold
 {% endblock title %}
 {% block content %}
+
+<h3>Eksisterende bolde</h3>
+<table class="table table-striped">
+<thead>
+  <tr>
+    <th>&nbsp;</th>
+    <th>Boldens navn</th>
+    <th></th>
+  </tr>
+</thead>
+<tbody>
+  {% for ball in balls %}
+    <tr>
+      <td><img src="/static/balls/{{ball.img}}.png" alt="{{ball.name}}"}></td>
+      <td><a href="/ball/{{ball.name}}">{{ball.name | escape}}</a></td>
+    </tr>
+  {% endfor %}
+</tbody>
+</table> 
+<h3>Ny bold</h3>
 <form method="post" action="/newball/submit">
         Boldens navn:<br/>
         <input type="text" name="name" value="" required>

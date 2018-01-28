@@ -5,28 +5,29 @@
 Bolde
 {% endblock header %}
 {% block title %}
-Bolde
+Bolde i brug
 {% endblock title %}
 {% block content %}
 <p>
   {{macros::newball()}}
 </p>
-
-  <table class="table table-striped">
-  <thead>
-    <tr>
-      <th>&nbsp;</th>
-      <th>Boldens navn</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for ball in balls %}
+<table class="table table-striped">
+    <thead>
       <tr>
-        <td><img src="/static/balls/{{ball.img}}.png" alt="{{ball.name}}"}</td>
-        <td><a href="/ball/{{ball.name}}">{{ball.name | escape}}</a></td>
+        <th>Bold</th>
+        <th>Antal spil</th>
+        <th>Antal mål</th>
       </tr>
-    {% endfor %}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {% for b in ballstats %}
+        <tr>
+          <td><a href="/ball/{{b.name}}"><img src="/static/balls/{{b.img|urlencode}}.png" alt="{{b.name}}"/> {{b.name|escape}}</a></td>
+          <td>{{b.games}}</td>
+          <td>{{b.goals}}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
 {% endblock content %}

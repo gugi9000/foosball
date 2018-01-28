@@ -1,19 +1,33 @@
 use ::*;
 
+#[derive(Debug, Serialize)]
+struct Ballstats {
+    name: String,
+    games: i32,
+    goals: i32,
+    img: String,
+}
+
 #[get("/balls")]
 fn balls<'a>() -> ContRes<'a> {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
-
-    let mut balls = Vec::new();
-
-    for ball in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1), row.get::<_, String>(2))).unwrap() {
-        let (id, name, img) = ball.unwrap();
-        balls.push(Ball{id: id, name: name, img: img});
-    }
-
+    let mut stmt =
+        conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
+            .unwrap();
+    
+    let ballstats: Vec<_> = stmt.query_map(&[], |row| {
+        Ballstats {
+            name: row.get(3),
+            img: row.get(4),
+            games: row.get(2),
+            goals: row.get(1),
+        }
+    })
+    .unwrap()
+    .map(Result::unwrap)
+    .collect();
     let mut context = create_context("balls");
-    context.add("balls", &balls);
+    context.add("ballstats", &ballstats);
 
     respond_page("balls", context)
 }
@@ -52,6 +66,7 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
     if games.len() != 0 {
         println!("Ukendt bold: {}",ball);
     }
+
     context.add("games", &games);
     context.add("ball", &ball);
     respond_page("ball", context)
@@ -59,7 +74,20 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
 
 #[get("/newball")]
 fn newball<'a>() -> ContRes<'a> {
-    respond_page("newball", create_context("balls"))
+    let conn = lock_database();
+    let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
+
+    let mut balls = Vec::new();
+
+    for ball in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1), row.get::<_, String>(2))).unwrap() {
+        let (id, name, img) = ball.unwrap();
+        balls.push(Ball{id: id, name: name, img: img});
+    }
+
+    let mut context = create_context("balls");
+    context.add("balls", &balls);
+    
+    respond_page("newball", context)
 }
 
 #[derive(FromForm)]
@@ -91,4 +119,28 @@ fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
         }
     }
     Resp::cont(respond_page("newball_fejl", context))
+}
+
+#[get("/analysis/balls")]
+fn ballstats<'a>() -> ContRes<'a> {
+    let conn = lock_database();
+    let mut stmt =
+        conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
+            .unwrap();
+    let ballstats: Vec<_> = stmt.query_map(&[], |row| {
+        Ballstats {
+            name: row.get(3),
+            img: row.get(4),
+            games: row.get(2),
+            goals: row.get(1),
+        }
+    })
+    .unwrap()
+    .map(Result::unwrap)
+    .collect();
+
+    let mut context = create_context("analysis");
+
+    context.add("ballstats", &ballstats);
+    respond_page("ballstats", context)
 }
