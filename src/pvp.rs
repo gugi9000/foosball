@@ -28,8 +28,9 @@ fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato, home_id FROM games g \
-                      WHERE (home_id = ?1 and away_id = ?2) or (home_id = ?2 and away_id = ?1) \
-                      and dato > date('now','start of month') ORDER BY dato DESC")
+                      WHERE (home_id = ?1 and away_id = ?2) and dato > date('now','start of month') \
+                      or (home_id = ?2 and away_id = ?1) and dato > date('now','start of month') \
+                      ORDER BY dato DESC")
             .unwrap();
 
     let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));
