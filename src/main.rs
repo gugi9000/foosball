@@ -33,6 +33,7 @@ mod games;
 mod players;
 mod statics;
 mod ratings;
+mod pvp;
 mod analysis;
 
 const BETA: f64 = 5000.0;
@@ -369,8 +370,8 @@ fn main() {
                routes![analysis::analysis,
                        analysis::ballstats,
                        analysis::developmenttsv,
-                       analysis::pvp,
-                       analysis::pvpindex,
+                       pvp::pvp,
+                       pvp::pvpindex,
                        analysis::ratingsdev,
                        statics::robots_handler,
                        statics::favicon_handler,

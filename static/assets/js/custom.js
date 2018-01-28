@@ -13,5 +13,5 @@ function pvpcompare() {
   const p1 = $("input:radio[name=player1]:checked").val();
   const p2 = $("input:radio[name=player2]:checked").val();
 
-  window.location = "/analysis/pvp/" + p1 + "/" + p2;
+  window.location = "/pvp/" + p1 + "/" + p2;
 }
