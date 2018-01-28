@@ -77,12 +77,36 @@ fn root<'a>() -> ContRes<'a> {
      respond_page("root", context)
 }
 
+#[derive(Debug, Serialize)]
+struct Homeawaystats {
+    homewins: i32,
+    awaywins: i32,
+    homegoals: i32,
+    awaygoals: i32,
+}
+
 #[get("/ratings")]
 fn ratings<'a>() -> ContRes<'a> {
     let mut context = create_context("rating");
     context.add("players", &get_and_update_new_ratings());
     context.add("ace_egg_modifier", &CONFIG.ace_egg_modifier);
     context.add("streak_modifier", &CONFIG.streak_modifier);
+    let conn = lock_database();
+    let mut stmt =
+        conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games;")
+            .unwrap();
+    let homeawaystats: Vec<_> = stmt.query_map(&[], |row| {
+        Homeawaystats {
+            homewins: row.get(0),
+            awaywins: row.get(1),
+            homegoals: row.get(2),
+            awaygoals: row.get(3),
+        }
+    })
+    .unwrap()
+    .map(Result::unwrap)
+    .collect();
+    context.add("homeawaystats", &homeawaystats);
     respond_page("ratings", context)
 }
 

@@ -54,4 +54,31 @@ Stillingen
     🥚 koster {{ace_egg_modifier}}. 🏆 giver +{{ace_egg_modifier}}.
 </p>
 <p><label for="auto-refresh">Auto-refresh: <input type="checkbox" id="auto-refresh" checked></label></p>
+
+<p>
+  De hvide er hjemmeholdet. De sorte er udeholdet.
+</p>
+<table class="table table-striped">
+<thead>
+  <tr>
+    <th>&nbsp;</th>
+    <th>Hvid</th>
+    <th>Sort</th>
+  </tr>
+</thead>
+<tbody>
+  {% for felt in homeawaystats %}
+    <tr>
+      <th>Vundne</th>
+      <td>{{felt.homewins}}</td>
+      <td>{{felt.awaywins}}</td>
+    </tr>
+      <th>Mål</th>
+      <td>{{felt.homegoals}}</td>
+      <td>{{felt.awaygoals}}</td>
+    </tr>
+  {% endfor %}
+</tbody>
+</table>
+
 {% endblock content %}
