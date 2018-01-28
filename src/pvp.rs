@@ -14,7 +14,7 @@ fn pvpindex<'a>() -> ContRes<'a> {
         .map(Result::unwrap)
         .collect();
 
-    let mut context = create_context("analysis");
+    let mut context = create_context("pvp");
     context.add("names", &names);
 
     respond_page("pvpindex", context)
@@ -76,7 +76,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
 //      p1  mål     p1 vundne   p1 navn     p1 antal kampe
 //      p2  mål     p2 vundne   p2 navn     p2 antal kampe
 
-    let mut context = create_context("analysis");
+    let mut context = create_context("pvp");
 
     context.add("pvp", &pvp);
     context.add("map", &map);
