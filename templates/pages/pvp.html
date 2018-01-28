@@ -10,14 +10,14 @@ Kampe
 {% block content %}
 {% if map.0.2 %}
 <p>
-    Kampe mellem {{map.0.2}} og {{map.1.2}} 
+    Kampe mellem {{map.0.2}} og {{map.1.2}}
 </p>
 <p>
     Målscore: {{map.0.0}} - {{map.1.0}}
 </p>
 <p>
-    {{map.0.2}} har vundet {{map.0.1}} kampe over {{map.1.2}}<br/>
-    {{map.1.2}} har vundet {{map.1.1}} kampe over {{map.0.2}}<br/>
+    {{map.0.2}} har vundet {{map.0.1}} kamp{{map.0.1|pluralize(suffix="e")}} over {{map.1.2}}<br/>
+    {{map.1.2}} har vundet {{map.1.1}} kamp{{map.1.1|pluralize(suffix="e")}} over {{map.0.2}}<br/>
     I alt {{pvp | length}} kampe.
 </p>
 <table class="table table-striped">
