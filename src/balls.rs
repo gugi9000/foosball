@@ -62,9 +62,6 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
         .collect();
 
     let mut context = create_context("balls");
-    if games.len() != 0 {
-        println!("Ukendt bold: {}",ball);
-    }
 
     context.add("games", &games);
     context.add("ball", &ball);
