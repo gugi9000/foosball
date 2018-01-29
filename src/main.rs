@@ -376,7 +376,6 @@ fn main() {
                        games::games,
                        games::newgame,
                        games::submit_newgame,
-                       balls::ballstats,
                        balls::balls,
                        balls::ball,
                        balls::newball,

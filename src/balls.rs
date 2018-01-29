@@ -119,27 +119,3 @@ fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
     }
     Resp::cont(respond_page("newball_fejl", context))
 }
-
-#[get("/analysis/balls")]
-fn ballstats<'a>() -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
-            .unwrap();
-    let ballstats: Vec<_> = stmt.query_map(&[], |row| {
-        Ballstats {
-            name: row.get(3),
-            img: row.get(4),
-            games: row.get(2),
-            goals: row.get(1),
-        }
-    })
-    .unwrap()
-    .map(Result::unwrap)
-    .collect();
-
-    let mut context = create_context("analysis");
-
-    context.add("ballstats", &ballstats);
-    respond_page("ballstats", context)
-}
