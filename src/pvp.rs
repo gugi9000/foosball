@@ -71,11 +71,9 @@ fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
         .map(Result::unwrap)
         .collect();
 
-    print!("{:?}", map);
-
-
-//      p1  mål     p1 vundne   p1 navn     p1 antal kampe
-//      p2  mål     p2 vundne   p2 navn     p2 antal kampe
+    // map is formatted like this:
+    //      p1  goals   p1 wins     p1 name
+    //      p2  goals   p2 wins     p2 name
 
     let mut context = create_context("pvp");
 
