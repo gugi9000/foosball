@@ -19,7 +19,7 @@ fn players<'a>() -> ContRes<'a> {
 }
 
 #[get("/player/<name>")]
-fn player<'a>(mut name: String) -> ContRes<'a> {
+fn player<'a>(name: String) -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
