@@ -34,7 +34,7 @@ mod players;
 mod statics;
 mod ratings;
 mod pvp;
-mod analysis;
+mod ratingsdev;
 
 const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -367,11 +367,10 @@ fn main() {
     &*CONFIG;
     rocket::ignite()
         .mount("/",
-               routes![analysis::analysis,
-                       analysis::developmenttsv,
+               routes![ratingsdev::ratingsdev,
+                       ratingsdev::developmenttsv,
                        pvp::pvp,
                        pvp::pvpindex,
-                       analysis::ratingsdev,
                        statics::robots_handler,
                        statics::favicon_handler,
                        games::games,

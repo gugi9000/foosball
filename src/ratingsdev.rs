@@ -1,10 +1,5 @@
 use ::*;
 
-#[get("/analysis")]
-fn analysis<'a>() -> ContRes<'a> {
-    respond_page("analysis", create_context("analysis"))
-}
-
 #[get("/ratingsdev")]
 fn ratingsdev<'a>() -> ContRes<'a> {
     let mut context = create_context("analysis");
