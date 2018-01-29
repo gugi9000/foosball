@@ -26,7 +26,9 @@ fn player<'a>(mut name: String) -> ContRes<'a> {
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g \
-                      where (home = ?1) or (away = ?1) ORDER BY ID DESC")
+                      where (home = ?1) or (away = ?1) \
+                      AND dato > date('now', 'start of month') \
+                      ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[&name], |row| {
             PlayedGame {
