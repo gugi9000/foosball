@@ -43,7 +43,7 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
             (SELECT name FROM balls b WHERE ball_id = b.id) AS ballname, \
             dato \
             FROM games g  \
-            WHERE ballname = ?1 \
+            WHERE ballname = ?1 AND dato > date('now','start of month') \
             ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[&ball], |row| {
@@ -62,7 +62,6 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
         .collect();
 
     let mut context = create_context("balls");
-         // TODO handle players that don't exist
     if games.len() != 0 {
         println!("Ukendt bold: {}",ball);
     }
