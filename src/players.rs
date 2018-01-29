@@ -46,9 +46,7 @@ fn player<'a>(mut name: String) -> ContRes<'a> {
         .collect();
 
     let mut context = create_context("players");
-    if games.is_empty() {
-        name = "Ukendt spiller".to_owned();
-    }
+
     context.add("games", &games);
     context.add("name", &name);
     respond_page("player", context)
