@@ -4,18 +4,17 @@ CREATE TABLE "games" (
         `away_id`       INTEGER NOT NULL,
         `home_score`    INTEGER NOT NULL,
         `away_score`    INTEGER NOT NULL,
-        `dato`  TEXT, `ball_id` INTEGER,
+        `dato`  TEXT, `ball_id` INTEGER NOT NULL,
         PRIMARY KEY(`id`)
 );
 CREATE TABLE "players" (
-        `id`    INTEGER UNIQUE,
-        `name`  TEXT UNIQUE,
+        `id`    INTEGER UNIQUE NOT NULL,
+        `name`  TEXT UNIQUE NOT NULL,
         PRIMARY KEY(`id`)
 );
 CREATE TABLE "balls" (
-`id`    INTEGER UNIQUE,
-`name`  TEXT UNIQUE,
-`img`  TEXT,
+`id`    INTEGER UNIQUE NOT NULL,
+`name`  TEXT UNIQUE NOT NULL,
+`img`  TEXT NOT NULL,
 PRIMARY KEY(`id`)
 );
-
