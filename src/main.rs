@@ -98,6 +98,15 @@ fn egg_filter(value: Value, _args: HashMap<String, Value>) -> tera::Result<Value
     }
 }
 
+fn da_genetive_filter(value: Value, _args: HashMap<String, Value>) -> tera::Result<Value> {
+    let name = try_get_value!("name", "value", String, value);
+    if name.ends_with("s") {
+        Ok(Value::String(name + &"\'".to_owned()))
+    } else {
+        Ok(Value::String(name+"s"))
+    }
+}
+
 fn abs_filter(value: Value, _: HashMap<String, Value>) -> tera::Result<Value> {
     let num = try_get_value!("abs", "value", i32, value);
     Ok(num.abs().into())
@@ -109,6 +118,7 @@ lazy_static! {
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
         tera.register_filter("abs", abs_filter);
+        tera.register_filter("da_genetive", da_genetive_filter);
         tera
     };
     pub static ref CONFIG: Config = {
