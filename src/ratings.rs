@@ -93,7 +93,9 @@ fn ratings<'a>() -> ContRes<'a> {
     context.add("streak_modifier", &CONFIG.streak_modifier);
     let conn = lock_database();
     let mut stmt =
-        conn.prepare("select (select count(id) from games where home_score > away_score) as homewins, (select count(id) from games where home_score < away_score) as awaywins, (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games;")
+        conn.prepare("select (select count(id) from games where dato > date('now', 'start of month') and home_score > away_score) as homewins, \
+        (select count(id) from games where dato > date('now', 'start of month') and home_score < away_score) as awaywins, \
+        (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games where dato > date('now', 'start of month');")
             .unwrap();
     let homeawaystats: Vec<_> = stmt.query_map(&[], |row| {
         Homeawaystats {
