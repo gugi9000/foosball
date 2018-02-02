@@ -4,7 +4,8 @@ CREATE TABLE "games" (
         `away_id`       INTEGER NOT NULL,
         `home_score`    INTEGER NOT NULL,
         `away_score`    INTEGER NOT NULL,
-        `dato`  TEXT, `ball_id` INTEGER NOT NULL,
+        `dato`  TEXT NOT NULL,
+        `ball_id` INTEGER NOT NULL,
         PRIMARY KEY(`id`)
 );
 CREATE TABLE "players" (
