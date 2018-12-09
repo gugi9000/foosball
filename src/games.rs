@@ -41,8 +41,8 @@ fn newgame_con() -> Context {
 struct NewGame {
   home: i32,
   away: i32,
-  home_score: i32,
-  away_score: i32,
+  home_score: u8,
+  away_score: u8,
   ball: i32,
   secret: String,
   #[allow(dead_code)]
@@ -60,7 +60,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
     }
 
     if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
-       f.home == f.away {
+       f.home == f.away || f.home_score > 10 || f.away_score > 10 {
         let mut context = newgame_con();
 
         context.insert("fejl",
