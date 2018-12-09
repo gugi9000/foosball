@@ -1,4 +1,4 @@
-use ::*;
+use crate::*;
 
 #[get("/newgame")]
 fn newgame<'a>() -> ContRes<'a> {
@@ -32,8 +32,8 @@ fn newgame_con() -> Context {
 
     let mut context = create_context("games");
 
-    context.add("names", &names);
-    context.add("balls", &balls);
+    context.insert("names", &names);
+    context.insert("balls", &balls);
     context
 }
 
@@ -55,7 +55,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
 
     if f.secret != CONFIG.secret {
         let mut context = newgame_con();
-        context.add("fejl", &"Det indtastede kodeord er forkert 💩");
+        context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 
@@ -63,7 +63,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
        f.home == f.away {
         let mut context = newgame_con();
 
-        context.add("fejl",
+        context.insert("fejl",
                        &"Den indtastede kamp er ikke lovlig 😜");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
@@ -102,6 +102,6 @@ fn games<'a>() -> ContRes<'a> {
 
     let mut context = create_context("games");
 
-    context.add("games", &games);
+    context.insert("games", &games);
     respond_page("games", context)
 }

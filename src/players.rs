@@ -1,4 +1,4 @@
-use ::*;
+use crate::*;
 
 #[get("/players")]
 fn players<'a>() -> ContRes<'a> {
@@ -13,7 +13,7 @@ fn players<'a>() -> ContRes<'a> {
     }
 
     let mut context = create_context("players");
-    context.add("players", &players);
+    context.insert("players", &players);
 
     respond_page("players", context)
 }
@@ -47,8 +47,8 @@ fn player<'a>(name: String) -> ContRes<'a> {
 
     let mut context = create_context("players");
 
-    context.add("games", &games);
-    context.add("name", &name);
+    context.insert("games", &games);
+    context.insert("name", &name);
     respond_page("player", context)
 }
 
@@ -71,14 +71,14 @@ fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
 
     let mut context = create_context("players");
     if secret != CONFIG.secret {
-        context.add("fejl", &"Det indtastede kodeord er forkert 💩");
+        context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
     } else if name.is_empty() {
-        context.add("fejl", &"Den indtastede spiller er ikke lovlig 😜");
+        context.insert("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
         let n = lock_database().execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
 
         if n == 0 {
-            context.add("fejl", &"Den indtastede spiller eksisterer allerede 💩");
+            context.insert("fejl", &"Den indtastede spiller eksisterer allerede 💩");
         } else {
             reset_ratings();
             return Resp::red(Redirect::to("/"));

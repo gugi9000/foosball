@@ -1,31 +1,28 @@
 #![feature(custom_derive, plugin)]
 #![plugin(rocket_codegen)]
 
-extern crate rocket;
-extern crate bbt;
-extern crate rusqlite;
-extern crate toml;
-#[macro_use]
-extern crate lazy_static;
 #[macro_use]
 extern crate tera;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
 
-use std::fs::File;
-use std::path::{Path, PathBuf};
-use std::io::Read;
-use std::cmp::Ordering::{Greater, Less};
-use std::collections::HashMap;
-use std::sync::{Mutex, MutexGuard};
-use rocket::request::{Request, FromFormValue, Form};
-use rocket::response::{Content, NamedFile, Response, Responder, Redirect};
-use rocket::http::{RawStr, Status, ContentType};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+    io::Read,
+    cmp::Ordering::{Greater, Less},
+    collections::HashMap,
+    sync::{Mutex, MutexGuard}
+};
+use rocket::{
+    request::{Request, FromFormValue, Form},
+    response::{Content, NamedFile, Response, Responder, Redirect},
+    http::{RawStr, Status, ContentType}
+};
 use rusqlite::Connection;
 use tera::{Tera, Context, Value};
 use bbt::{Rater, Rating};
+use lazy_static::*;
 
 mod balls;
 mod errors;
@@ -156,8 +153,8 @@ lazy_static! {
     });
     static ref BASE_CONTEXT: Context = {
         let mut c = Context::new();
-        c.add("version", &VERSION);
-        c.add("league", &CONFIG.title);
+        c.insert("version", &VERSION);
+        c.insert("league", &CONFIG.title);
         c
     };
 }
@@ -253,7 +250,7 @@ struct Ball {
 
 pub fn create_context(current_page: &str) -> Context {
     let mut c = BASE_CONTEXT.clone();
-    c.add("cur", &current_page);
+    c.insert("cur", &current_page);
     c
 }
 
@@ -373,7 +370,7 @@ impl PlayerRating {
 }
 
 fn main() {
-    use errors::*;
+    use crate::errors::*;
     &*CONFIG;
     rocket::ignite()
         .mount("/",
@@ -398,6 +395,6 @@ fn main() {
                        ratings::reset,
                        ratings::root,
                        statics::static_handler])
-        .catch(errors![page_not_found, bad_request, server_error])
+        .catch(catchers![page_not_found, bad_request, server_error])
         .launch();
 }

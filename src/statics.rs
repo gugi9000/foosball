@@ -1,4 +1,4 @@
-use ::*;
+use crate::*;
 
 #[get("/static/<file..>")]
 fn static_handler(file: PathBuf) -> Option<NamedFile> {

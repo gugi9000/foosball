@@ -1,10 +1,10 @@
-use ::*;
+use crate::*;
 
 #[get("/ratingsdev")]
 fn ratingsdev<'a>() -> ContRes<'a> {
     let mut context = create_context("analysis");
-    context.add("ace_egg_modifier", &CONFIG.ace_egg_modifier);
-    context.add("streak_modifier", &CONFIG.streak_modifier);
+    context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
+    context.insert("streak_modifier", &CONFIG.streak_modifier);
    
     respond_page("ratingsdev", context)
 }

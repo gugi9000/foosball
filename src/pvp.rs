@@ -1,4 +1,4 @@
-use ::*;
+use crate::*;
 
 #[get("/pvp")]
 fn pvpindex<'a>() -> ContRes<'a> {
@@ -15,7 +15,7 @@ fn pvpindex<'a>() -> ContRes<'a> {
         .collect();
 
     let mut context = create_context("pvp");
-    context.add("names", &names);
+    context.insert("names", &names);
 
     respond_page("pvpindex", context)
 }
@@ -77,7 +77,7 @@ fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
 
     let mut context = create_context("pvp");
 
-    context.add("pvp", &pvp);
-    context.add("map", &map);
+    context.insert("pvp", &pvp);
+    context.insert("map", &map);
     respond_page("pvp", context)
 }

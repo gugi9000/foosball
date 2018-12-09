@@ -1,4 +1,4 @@
-use ::*;
+use crate::*;
 
 #[derive(Debug, Serialize)]
 struct Ballstats {
@@ -27,7 +27,7 @@ fn balls<'a>() -> ContRes<'a> {
     .map(Result::unwrap)
     .collect();
     let mut context = create_context("balls");
-    context.add("ballstats", &ballstats);
+    context.insert("ballstats", &ballstats);
 
     respond_page("balls", context)
 }
@@ -63,8 +63,8 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
 
     let mut context = create_context("balls");
 
-    context.add("games", &games);
-    context.add("ball", &ball);
+    context.insert("games", &games);
+    context.insert("ball", &ball);
     respond_page("ball", context)
 }
 
@@ -81,7 +81,7 @@ fn newball<'a>() -> ContRes<'a> {
     }
 
     let mut context = create_context("balls");
-    context.add("balls", &balls);
+    context.insert("balls", &balls);
     
     respond_page("newball", context)
 }
@@ -101,14 +101,14 @@ fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
 
     let mut context = create_context("balls");
     if secret != CONFIG.secret {
-        context.add("fejl", &"Det indtastede kodeord er forkert 💩");
+        context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
     } else if name.is_empty() {
-        context.add("fejl", &"Den indtastede bold er ikke lovlig 😜");
+        context.insert("fejl", &"Den indtastede bold er ikke lovlig 😜");
     } else {
         let n = lock_database().execute("INSERT INTO balls (name, img) VALUES (?, ?)", &[&img, &name]).unwrap();
 
         if n == 0 {
-            context.add("fejl", &"Den indtastede bold eksisterer allerede 💩");
+            context.insert("fejl", &"Den indtastede bold eksisterer allerede 💩");
         } else {
             reset_ratings();
             return Resp::red(Redirect::to("/"));
