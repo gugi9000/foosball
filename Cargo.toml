@@ -8,7 +8,7 @@ edition = "2018"
 [dependencies]
 rocket = "0.3"
 rocket_codegen = "0.3"
-bbt = "0.1.0"
+bbt = {version = "0.2.0", features = ["serde"]}
 rusqlite = "0.12"
 lazy_static = "0.2"
 tera = "0.11"

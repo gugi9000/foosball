@@ -29,7 +29,7 @@ Foosball Dashboard
       <tr>
         <td>{{loop.index}} <img src="/static/players/{{p.name|urlencode}}.png" alt="{{p.name|escape}}" height="{% if loop.first %}40{% else %}30{% endif %}"/></td>
         <td><a href="/player/{{p.name}}">{% if loop.first %}<strong>{{p.name|escape}}</strong>{% else %}{{p.name|escape}}{% endif %}</a></td>
-        <td><abbr title="{{p.rating.mu}}±{{p.rating.sigma}}">{{p.rating.score}}</abbr></td>
+        <td><abbr title="{{p.rating.mu | round(precision=2)}}±{{p.rating.sigma | round(precision=2)}}">{{p.rating.score | round(precision=1)}}</abbr></td>
         <td>
         {% if p.streak > 0 %}
         {{p.streak}} 👍
@@ -38,8 +38,8 @@ Foosball Dashboard
         {% endif %}
         </td>
         <td>{{p.kampe}}</td>
-        <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne}} %">{{p.vundne}}</abbr></strong></td>
-        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte| round}} %">{{p.tabte}}</abbr></td>
+        <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne | round}} %">{{p.vundne}}</abbr></strong></td>
+        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte | round}} %">{{p.tabte}}</abbr></td>
         <td>
           {% if p.aces %} {{p.aces}} 🏆 {% endif %}
           {% if p.eggs %} {{p.eggs}} 🥚 {% endif %}

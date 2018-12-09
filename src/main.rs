@@ -254,34 +254,22 @@ pub fn create_context(current_page: &str) -> Context {
     c
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct AggregatedRating {
+    #[serde(flatten)]
     rating: Rating,
-    modifier: f64
+    score: f64
 }
 
 impl AggregatedRating {
     fn from_player(p: &PlayerRating) -> Self {
         let streak = p.streak as f64;
+        let modifier = CONFIG.ace_egg_modifier * (p.aces as f64 - p.eggs as f64)
+            + CONFIG.streak_modifier * (streak - streak.signum());
         AggregatedRating {
             rating: p.rating.clone(),
-            modifier: CONFIG.ace_egg_modifier * (p.aces as f64 - p.eggs as f64)
-                + CONFIG.streak_modifier * (streak - streak.signum()),
+            score: p.rating.mu() - 3. * p.rating.sigma() + modifier
         }
-    }
-    fn get_score(&self) -> f64 {
-        self.rating.mu() - 3. * self.rating.sigma() + self.modifier
-    }
-}
-
-impl serde::Serialize for AggregatedRating {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("Rating", 3)?;
-        state.serialize_field("mu", &format!("{:.2}", self.rating.mu()))?;
-        state.serialize_field("sigma", &format!("{:.2}", self.rating.sigma()))?;
-        state.serialize_field("score", &format!("{:.1}", self.get_score()))?;
-        state.end()
     }
 }
 
@@ -352,7 +340,7 @@ impl PlayerRating {
             self.tabte += 1;
         }
         let rat = AggregatedRating::from_player(&self);
-        self.score_history.push((time, rat.get_score()));
+        self.score_history.push((time, rat.score));
     }
     fn to_data(&self) -> PlayerData {
         let rating = AggregatedRating::from_player(self);
