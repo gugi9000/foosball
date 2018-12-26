@@ -6,11 +6,10 @@ authors = ["Bjarke Sørensen <bs@wasd.dk>",
 edition = "2018"
 
 [dependencies]
-rocket = "0.3"
-rocket_codegen = "0.3"
+rocket = "0.4"
 bbt = {version = "0.2.0", features = ["serde"]}
 rusqlite = "0.12"
-lazy_static = "0.2"
+lazy_static = "1.2.0"
 tera = "0.11"
 toml = "0.4"
 serde = "1"

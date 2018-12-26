@@ -1,11 +1,11 @@
 use crate::*;
 
 #[get("/newgame")]
-fn newgame<'a>() -> ContRes<'a> {
+pub fn newgame<'a>() -> ContRes<'a> {
     respond_page("newgame", newgame_con())
 }
 
-fn newgame_con() -> Context {
+pub fn newgame_con() -> Context {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by random()").unwrap();
     let names: Vec<_> = stmt.query_map(&[], |row| {
@@ -38,7 +38,7 @@ fn newgame_con() -> Context {
 }
 
 #[derive(FromForm)]
-struct NewGame {
+pub struct NewGame {
   home: i32,
   away: i32,
   home_score: u8,
@@ -50,7 +50,7 @@ struct NewGame {
 }
 
 #[post("/newgame/submit", data = "<f>")]
-fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
+pub fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
@@ -77,7 +77,7 @@ fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
 }
 
 #[get("/games")]
-fn games<'a>() -> ContRes<'a> {
+pub fn games<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \

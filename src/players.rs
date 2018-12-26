@@ -1,7 +1,7 @@
 use crate::*;
 
 #[get("/players")]
-fn players<'a>() -> ContRes<'a> {
+pub fn players<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
@@ -19,7 +19,7 @@ fn players<'a>() -> ContRes<'a> {
 }
 
 #[get("/player/<name>")]
-fn player<'a>(name: String) -> ContRes<'a> {
+pub fn player<'a>(name: String) -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -53,12 +53,12 @@ fn player<'a>(name: String) -> ContRes<'a> {
 }
 
 #[get("/newplayer")]
-fn newplayer<'a>() -> ContRes<'a> {
+pub fn newplayer<'a>() -> ContRes<'a> {
     respond_page("newplayer", create_context("players"))
 }
 
 #[derive(FromForm)]
-struct NewPlayerQuery {
+pub struct NewPlayerQuery {
     name: String,
     secret: String,
     #[allow(dead_code)]
@@ -66,7 +66,7 @@ struct NewPlayerQuery {
 }
 
 #[post("/newplayer/submit", data = "<f>")]
-fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
+pub fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
     let NewPlayerQuery{name, secret, ..} = f.into_inner();
 
     let mut context = create_context("players");

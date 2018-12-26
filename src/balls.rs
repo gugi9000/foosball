@@ -1,7 +1,7 @@
 use crate::*;
 
 #[derive(Debug, Serialize)]
-struct Ballstats {
+pub struct Ballstats {
     name: String,
     games: i32,
     goals: i32,
@@ -9,7 +9,7 @@ struct Ballstats {
 }
 
 #[get("/balls")]
-fn balls<'a>() -> ContRes<'a> {
+pub fn balls<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
@@ -33,7 +33,7 @@ fn balls<'a>() -> ContRes<'a> {
 }
 
 #[get("/ball/<ball>")]
-fn ball<'a>(ball:String) -> ContRes<'a> {
+pub fn ball<'a>(ball:String) -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
@@ -69,7 +69,7 @@ fn ball<'a>(ball:String) -> ContRes<'a> {
 }
 
 #[get("/newball")]
-fn newball<'a>() -> ContRes<'a> {
+pub fn newball<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
 
@@ -87,7 +87,7 @@ fn newball<'a>() -> ContRes<'a> {
 }
 
 #[derive(FromForm)]
-struct NewBallQuery {
+pub struct NewBallQuery {
     name: String,
     img: String,
     secret: String,
@@ -96,7 +96,7 @@ struct NewBallQuery {
 }
 
 #[post("/newball/submit", data = "<f>")]
-fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
+pub fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
     let NewBallQuery{name, img, secret, ..} = f.into_inner();
 
     let mut context = create_context("balls");
