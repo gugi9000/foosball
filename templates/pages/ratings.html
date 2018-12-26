@@ -36,8 +36,8 @@ Stillingen
         {% endif %}
         </td>
         <td>{{p.kampe}}</td>
-        <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne | round}} %">{{p.vundne}}</abbr></strong></td>
-        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte | round}} %">{{p.tabte}}</abbr></td>
+        <td><strong><abbr title="{{ 100 / p.kampe * p.vundne | round(precision=2)}}%">{{p.vundne}}</abbr></strong></td>
+        <td><abbr title="{{ 100 / p.kampe * p.tabte | round(precision=2)}}%">{{p.tabte}}</abbr></td>
         <td>
           {% if p.aces %} {{p.aces}} 🏆 {% endif %}
           {% if p.eggs %} {{p.eggs}} 🥚 {% endif %}
@@ -50,8 +50,8 @@ Stillingen
 {{macros::newgame()}}
 </p>
 <p>
-    En streak giver ±{{streak_modifier}} point på n&aelig;r det den f&oslash;rste (streak på +5 giver +{{streak_modifier * 4}}).
-    🥚 koster {{ace_egg_modifier}}. 🏆 giver +{{ace_egg_modifier}}.
+    En streak giver ±{{streak_modifier}} point på nær den første (streak på +5 giver +{{streak_modifier * 4}}).
+    Et 🥚 koster {{ace_egg_modifier}}. En 🏆 giver +{{ace_egg_modifier}}.
 </p>
 <p><label for="auto-refresh">Auto-refresh: <input type="checkbox" id="auto-refresh" checked></label></p>
 <ul>

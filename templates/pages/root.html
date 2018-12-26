@@ -38,8 +38,8 @@ Foosball Dashboard
         {% endif %}
         </td>
         <td>{{p.kampe}}</td>
-        <td><strong><abbr title="Vundet: {{ 100 / p.kampe * p.vundne | round}} %">{{p.vundne}}</abbr></strong></td>
-        <td><abbr title="Tabt: {{ 100 / p.kampe * p.tabte | round}} %">{{p.tabte}}</abbr></td>
+        <td><strong><abbr title="{{ 100 / p.kampe * p.vundne | round(precision=2)}}%">{{p.vundne}}</abbr></strong></td>
+        <td><abbr title="{{ 100 / p.kampe * p.tabte | round(precision=2)}}%">{{p.tabte}}</abbr></td>
         <td>
           {% if p.aces %} {{p.aces}} 🏆 {% endif %}
           {% if p.eggs %} {{p.eggs}} 🥚 {% endif %}
