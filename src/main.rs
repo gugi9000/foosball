@@ -4,7 +4,8 @@ extern crate tera;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
-extern crate rocket_codegen;
+extern crate rocket;
+
 
 use std::{
     fs::File,
@@ -383,6 +384,6 @@ fn main() {
                        crate::ratings::reset,
                        crate::ratings::root,
                        crate::statics::static_handler])
-        .catch(catchers![page_not_found, bad_request, server_error])
+        .register(catchers![page_not_found, bad_request, server_error])
         .launch();
 }

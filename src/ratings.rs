@@ -32,7 +32,7 @@ pub fn update_new_ratings() {
     }
 }
 
-pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
+fn get_and_update_new_ratings() -> Vec<PlayerData> {
     update_new_ratings();
     let players = PLAYERS.lock().unwrap();
 
@@ -46,7 +46,7 @@ pub fn get_and_update_new_ratings() -> Vec<PlayerData> {
 }
 
 #[get("/")]
-fn root<'a>() -> ContRes<'a> {
+pub fn root<'a>() -> ContRes<'a> {
     let mut context = create_context("root");
     context.insert("players", &get_and_update_new_ratings());
 
@@ -86,7 +86,7 @@ struct Homeawaystats {
 }
 
 #[get("/ratings")]
-fn ratings<'a>() -> ContRes<'a> {
+pub fn ratings<'a>() -> ContRes<'a> {
     let mut context = create_context("rating");
     context.insert("players", &get_and_update_new_ratings());
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
@@ -113,7 +113,7 @@ fn ratings<'a>() -> ContRes<'a> {
 }
 
 #[get("/reset/ratings")]
-fn reset() -> Redirect {
+pub fn reset() -> Redirect {
     reset_ratings();
     Redirect::to("/")
 }

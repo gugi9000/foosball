@@ -1,7 +1,7 @@
 use crate::*;
 
 #[get("/ratingsdev")]
-fn ratingsdev<'a>() -> ContRes<'a> {
+pub fn ratingsdev<'a>() -> ContRes<'a> {
     let mut context = create_context("analysis");
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
     context.insert("streak_modifier", &CONFIG.streak_modifier);
@@ -12,7 +12,7 @@ fn ratingsdev<'a>() -> ContRes<'a> {
 use std::collections::BTreeMap;
 
 #[get("/data/ratingsdev.tsv")]
-fn developmenttsv() -> String {
+pub fn developmenttsv() -> String {
     // HACK This seems a bit weird, but it works
     let mut ratings_history = BTreeMap::<String, HashMap<i32, f64>>::new();
 
