@@ -1,10 +1,10 @@
-#![feature(custom_derive, plugin)]
-#![plugin(rocket_codegen)]
-
+#![feature(decl_macro, proc_macro_hygiene)]
 #[macro_use]
 extern crate tera;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
+extern crate rocket_codegen;
 
 use std::{
     fs::File,
@@ -362,27 +362,27 @@ fn main() {
     &*CONFIG;
     rocket::ignite()
         .mount("/",
-               routes![ratingsdev::ratingsdev,
-                       ratingsdev::developmenttsv,
-                       pvp::pvp,
-                       pvp::pvpindex,
-                       statics::robots_handler,
-                       statics::favicon_handler,
-                       games::games,
-                       games::newgame,
-                       games::submit_newgame,
-                       balls::balls,
-                       balls::ball,
-                       balls::newball,
-                       balls::submit_newball,
-                       players::players,
-                       players::player,
-                       players::newplayer,
-                       players::submit_newplayer,
-                       ratings::ratings,
-                       ratings::reset,
-                       ratings::root,
-                       statics::static_handler])
+               routes![crate::ratingsdev::ratingsdev,
+                       crate::ratingsdev::developmenttsv,
+                       crate::pvp::pvp,
+                       crate::pvp::pvpindex,
+                       crate::statics::robots_handler,
+                       crate::statics::favicon_handler,
+                       crate::games::games,
+                       crate::games::newgame,
+                       crate::games::submit_newgame,
+                       crate::balls::balls,
+                       crate::balls::ball,
+                       crate::balls::newball,
+                       crate::balls::submit_newball,
+                       crate::players::players,
+                       crate::players::player,
+                       crate::players::newplayer,
+                       crate::players::submit_newplayer,
+                       crate::ratings::ratings,
+                       crate::ratings::reset,
+                       crate::ratings::root,
+                       crate::statics::static_handler])
         .catch(catchers![page_not_found, bad_request, server_error])
         .launch();
 }
