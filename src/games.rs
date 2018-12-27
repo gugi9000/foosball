@@ -8,7 +8,7 @@ pub fn newgame<'a>() -> ContRes<'a> {
 pub fn newgame_con() -> Context {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by random()").unwrap();
-    let names: Vec<_> = stmt.query_map(&[], |row| {
+    let names: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
             Named {
                 id: row.get(0),
                 name: row.get(1)
@@ -19,7 +19,7 @@ pub fn newgame_con() -> Context {
         .collect();
 
     let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
-    let balls: Vec<_> = ballstmt.query_map(&[], |row| {
+    let balls: Vec<_> = ballstmt.query_map(NO_PARAMS, |row| {
             Ball {
                 id: row.get(0),
                 name: row.get(1),
@@ -41,8 +41,8 @@ pub fn newgame_con() -> Context {
 pub struct NewGame {
   home: i32,
   away: i32,
-  home_score: u8,
-  away_score: u8,
+  home_score: i32,
+  away_score: i32,
   ball: i32,
   secret: String,
   #[allow(dead_code)]
@@ -85,7 +85,7 @@ pub fn games<'a>() -> ContRes<'a> {
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g WHERE dato > date('now', 'start of month') ORDER BY dato DESC")
             .unwrap();
-    let games: Vec<_> = stmt.query_map(&[], |row| {
+    let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
             PlayedGame {
                 home: row.get(0),
                 away: row.get(1),

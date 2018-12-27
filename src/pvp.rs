@@ -4,7 +4,7 @@ use crate::*;
 pub fn pvpindex<'a>() -> ContRes<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
-    let names: Vec<_> = stmt.query_map(&[], |row| {
+    let names: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
             Named {
                 id: row.get(0),
                 name: row.get(1)

@@ -20,7 +20,7 @@ use rocket::{
     response::{Content, NamedFile, Response, Responder, Redirect},
     http::{RawStr, Status, ContentType}
 };
-use rusqlite::Connection;
+use rusqlite::{Connection, NO_PARAMS};
 use tera::{Tera, Context, Value};
 use bbt::{Rater, Rating};
 use lazy_static::*;
@@ -180,7 +180,7 @@ fn gen_players() -> HashMap<i32, PlayerRating> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut players = HashMap::new();
-    for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
+    for p in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
         let (id, name) = p.unwrap();
         players.insert(id, PlayerRating::new(name));
     }
@@ -207,10 +207,10 @@ fn get_games<'a>() -> Vec<Game> {
         conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}') order by dato asc", *last_date))
             .unwrap();
 
-    let gs = stmt.query_map(&[], |row| {
+    let gs = stmt.query_map(NO_PARAMS, |row| {
             let home_score = row.get::<_, i32>(2);
             let away_score = row.get::<_, i32>(3);
-            // FIXME
+            // FIXME: 
             *last_date = row.get(4);
             Game {
                 home: row.get(0),

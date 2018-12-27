@@ -7,7 +7,7 @@ pub fn players<'a>() -> ContRes<'a> {
 
     let mut players = Vec::new();
 
-    for p in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
+    for p in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
         let (id, name) = p.unwrap();
         players.push(Named{id: id, name: name});
     }

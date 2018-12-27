@@ -15,7 +15,7 @@ pub fn balls<'a>() -> ContRes<'a> {
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
             .unwrap();
     
-    let ballstats: Vec<_> = stmt.query_map(&[], |row| {
+    let ballstats: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
         Ballstats {
             name: row.get(3),
             img: row.get(4),
@@ -75,7 +75,7 @@ pub fn newball<'a>() -> ContRes<'a> {
 
     let mut balls = Vec::new();
 
-    for ball in stmt.query_map(&[], |row| (row.get::<_, i32>(0), row.get::<_, String>(1), row.get::<_, String>(2))).unwrap() {
+    for ball in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1), row.get::<_, String>(2))).unwrap() {
         let (id, name, img) = ball.unwrap();
         balls.push(Ball{id: id, name: name, img: img});
     }

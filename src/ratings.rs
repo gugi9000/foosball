@@ -57,7 +57,7 @@ pub fn root<'a>() -> ContRes<'a> {
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5")
             .unwrap();
-       let games: Vec<_> = stmt.query_map(&[], |row| {
+       let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
             PlayedGame {
                 home: row.get(0),
                 away: row.get(1),
@@ -97,8 +97,11 @@ pub fn ratings<'a>() -> ContRes<'a> {
         (select count(id) from games where dato > date('now', 'start of month') and home_score < away_score) as awaywins, \
         (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games where dato > date('now', 'start of month');")
             .unwrap();
-    let homeawaystats: Vec<_> = stmt.query_map(&[], |row| {
-        Homeawaystats {
+
+// FIXME: panicks when no games in current period. Issue #58
+
+    let homeawaystats: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
+    Homeawaystats {
             homewins: row.get(0),
             awaywins: row.get(1),
             homegoals: row.get(2),
@@ -109,6 +112,9 @@ pub fn ratings<'a>() -> ContRes<'a> {
     .map(Result::unwrap)
     .collect();
     context.insert("homeawaystats", &homeawaystats);
+
+
+    
     respond_page("ratings", context)
 }
 
