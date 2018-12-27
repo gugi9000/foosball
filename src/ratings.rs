@@ -73,8 +73,8 @@ pub fn root<'a>() -> ContRes<'a> {
         .collect();
 
     context.insert("games", &games);
-
-     respond_page("root", context)
+    
+    respond_page("root", context)
 }
 
 #[derive(Debug, Serialize)]
