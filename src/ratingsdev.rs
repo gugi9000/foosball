@@ -51,6 +51,10 @@ pub fn developmenttsv() -> String {
         data.push_str(&line);
         data.push('\n');
     }
-
-    data
+    
+    if data.len() < 10 {
+        return "date\tNoone\n20190101T00:00\t0.0".to_owned();
+    } else {
+        return data;
+    }
 }

@@ -23,6 +23,7 @@ Kampe
   </thead>
   <tbody>
     {% for g in games %}
+    {% if g.dato == '2018-12-09 22:05:37' %}<tr><td>&nbsp;</td></tr>{% endif %}
       <tr>
         <td><a href="/player/{{g.home}}">
           {% if g.home_score == 10 %}<strong>{% endif %}
