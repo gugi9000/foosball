@@ -146,7 +146,7 @@ lazy_static! {
             Err(_) => false,
         };
         let conn = Connection::open(&CONFIG.database).unwrap();
-        if !exists {
+        if ! exists {
             println!("Database didn't exist... creating one");
             conn.execute_batch(include_str!("ratings.schema")).unwrap();
         }
