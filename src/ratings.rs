@@ -52,25 +52,26 @@ pub fn root<'a>() -> ContRes<'a> {
 
     let conn = lock_database();
     let mut stmt =
-        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
-                      (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
-                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5")
+        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, 
+                      (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score,
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), 
+                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5
+                     ")
             .unwrap();
-       let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-            PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
-            }
-        })
-        .unwrap()
-        .map(Result::unwrap)
-        .collect();
+    let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
+        PlayedGame {
+            home: row.get(0),
+            away: row.get(1),
+            home_score: row.get(2),
+            away_score: row.get(3),
+            ball: row.get(5),
+            ball_name: row.get(6),
+            dato: row.get(7),
+        }
+    })
+    .unwrap()
+    .map(Result::unwrap)
+    .collect();
 
     context.insert("games", &games);
     
@@ -93,12 +94,12 @@ pub fn ratings<'a>() -> ContRes<'a> {
     context.insert("streak_modifier", &CONFIG.streak_modifier);
     let conn = lock_database();
     let mut stmt =
-        conn.prepare("select (select count(id) from games where dato > date('now', 'start of month') and home_score > away_score) as homewins, \
-        (select count(id) from games where dato > date('now', 'start of month') and home_score < away_score) as awaywins, \
-        (select sum(home_score) ) as homegoals, (select sum(away_score) ) as awaygoals from games where dato > date('now', 'start of month');")
-            .unwrap();
-
-// FIXME: panicks when no games in current period. Issue #58
+        conn.prepare("
+        select (select count(id) from games where dato > date('now', 'start of month') AND home_score > away_score) AS homewins,
+        (select count(id) from games where dato > date('now', 'start of month') and home_score < away_score) as awaywins,
+        (select coalesce(sum(home_score),0) ) as homegoals, (select coalesce(sum(away_score),0) ) as awaygoals from games
+        where dato > date('now', 'start of month')
+        ").unwrap();
 
     let homeawaystats: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
     Homeawaystats {
@@ -111,10 +112,10 @@ pub fn ratings<'a>() -> ContRes<'a> {
     .unwrap()
     .map(Result::unwrap)
     .collect();
+    println!("Stats: {:?}",homeawaystats);
+
     context.insert("homeawaystats", &homeawaystats);
 
-
-    
     respond_page("ratings", context)
 }
 
