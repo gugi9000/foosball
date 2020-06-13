@@ -1,18 +1,10 @@
 use crate::*;
 
+use diesel::sql_types::Integer;
+
 #[get("/pvp")]
-pub fn pvpindex<'a>() -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
-    let names: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-            Named {
-                id: row.get(0),
-                name: row.get(1)
-            }
-        })
-        .unwrap()
-        .map(Result::unwrap)
-        .collect();
+pub fn pvpindex<'a>(conn: DbConn) -> ContRes<'a> {
+    let names = model::Player::read_all_ordered(&conn);
 
     let mut context = create_context("pvp");
     context.insert("names", &names);
@@ -21,31 +13,28 @@ pub fn pvpindex<'a>() -> ContRes<'a> {
 }
 
 #[get("/pvp/<p1>/<p2>")]
-pub fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
+pub fn pvp<'a>(conn: DbConn, p1: i32, p2: i32) -> ContRes<'a> {
+    let results = diesel::sql_query("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
-                      (SELECT name FROM balls b WHERE ball_id = b.id), dato, home_id FROM games g \
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id) as ball_img, \
+                      (SELECT name FROM balls b WHERE ball_id = b.id) as ball_name, dato, home_id FROM games g \
                       WHERE (home_id = ?1 and away_id = ?2) and dato > date('now','start of month') \
                       or (home_id = ?2 and away_id = ?1) and dato > date('now','start of month') \
-                      ORDER BY dato DESC")
-            .unwrap();
+                      ORDER BY dato DESC").bind::<Integer, _>(p1).bind::<Integer, _>(p2).load::<model::PlayedGameQueryWithHomeId>(&*conn).unwrap();
 
     let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));
 
-    let pvp: Vec<_> = stmt.query_map(&[&p1, &p2], |row| {
+    let pvp: Vec<_> = results.into_iter().map(|row| {
             let game = PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
+                home: row.home,
+                away: row.away,
+                home_score: row.home_score,
+                away_score: row.away_score,
+                ball: row.ball_img,
+                ball_name: row.ball_name,
+                dato: row.dato,
             };
-            let home_id: i32 = row.get(8);
+            let home_id: i32 = row.home_id;
 
             let home_win = game.home_score > game.away_score;
             {
@@ -67,8 +56,6 @@ pub fn pvp<'a>(p1: i32, p2: i32) -> ContRes<'a> {
 
             game
         })
-        .unwrap()
-        .map(Result::unwrap)
         .collect();
 
     // map is formatted like this:

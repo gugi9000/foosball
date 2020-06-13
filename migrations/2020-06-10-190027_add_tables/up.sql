@@ -1,3 +1,4 @@
+-- Your SQL goes here
 CREATE TABLE players (
     id   INTEGER NOT NULL
                  PRIMARY KEY,

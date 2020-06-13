@@ -1,9 +1,9 @@
 use crate::*;
 
-pub fn update_new_ratings() {
-    let mut players = PLAYERS.lock().unwrap();
+use diesel::sql_types::Integer;
 
-    for g in get_games() {
+pub fn update_new_ratings(conn: &DbConn, players: &mut PlayersMap) {
+    for g in get_games(conn) {
         let away_rating = players[&g.away].rating.clone();
         let home_rating = players[&g.home].rating.clone();
 
@@ -32,9 +32,8 @@ pub fn update_new_ratings() {
     }
 }
 
-fn get_and_update_new_ratings() -> Vec<PlayerData> {
-    update_new_ratings();
-    let players = PLAYERS.lock().unwrap();
+fn get_and_update_new_ratings(conn: &DbConn, players: &mut PlayersMap) -> Vec<PlayerData> {
+    update_new_ratings(conn, players);
 
     let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).filter(|p| p.kampe > 0).collect();
     ps.sort_by(|a, b| if b.rating.score < a.rating.score {
@@ -46,31 +45,31 @@ fn get_and_update_new_ratings() -> Vec<PlayerData> {
 }
 
 #[get("/")]
-pub fn root<'a>() -> ContRes<'a> {
-    let mut context = create_context("root");
-    context.insert("players", &get_and_update_new_ratings());
+pub fn root<'a>(conn: DbConn, players: Players) -> ContRes<'a> {
+    let mut players = players.lock().unwrap();
 
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, 
+    let mut context = create_context("root");
+    context.insert("players", &get_and_update_new_ratings(&conn, &mut *players));
+
+    let results: Vec<model::PlayedGameQuery> =
+        diesel::sql_query("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, 
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score,
-                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), 
-                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5
+                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id) as ball_img, 
+                      (SELECT name FROM balls b WHERE ball_id = b.id) AS ball_name, dato FROM games g ORDER BY dato DESC LIMIT 5
                      ")
+            .load(&*conn)
             .unwrap();
-    let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
+    let games: Vec<_> = results.into_iter().map(|row| {
         PlayedGame {
-            home: row.get(0),
-            away: row.get(1),
-            home_score: row.get(2),
-            away_score: row.get(3),
-            ball: row.get(5),
-            ball_name: row.get(6),
-            dato: row.get(7),
+            home: row.home,
+            away: row.away,
+            home_score: row.home_score,
+            away_score: row.away_score,
+            ball: row.ball_img,
+            ball_name: row.ball_name,
+            dato: row.dato,
         }
     })
-    .unwrap()
-    .map(Result::unwrap)
     .collect();
 
     context.insert("games", &games);
@@ -78,40 +77,35 @@ pub fn root<'a>() -> ContRes<'a> {
     respond_page("root", context)
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Queryable, QueryableByName)]
 struct Homeawaystats {
+    #[sql_type = "Integer"]
     homewins: i32,
+    #[sql_type = "Integer"]
     awaywins: i32,
+    #[sql_type = "Integer"]
     homegoals: i32,
+    #[sql_type = "Integer"]
     awaygoals: i32,
 }
 
 #[get("/ratings")]
-pub fn ratings<'a>() -> ContRes<'a> {
+pub fn ratings<'a>(conn: DbConn, players: Players) -> ContRes<'a> {
     let mut context = create_context("rating");
-    context.insert("players", &get_and_update_new_ratings());
+    {
+        let mut players = players.lock().unwrap();
+        context.insert("players", &get_and_update_new_ratings(&conn, &mut *players));
+    }
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
     context.insert("streak_modifier", &CONFIG.streak_modifier);
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("
+    let homeawaystats: Vec<Homeawaystats> = 
+        diesel::sql_query("
         select (select count(id) from games where dato > date('now', 'start of month') AND home_score > away_score) AS homewins,
         (select count(id) from games where dato > date('now', 'start of month') and home_score < away_score) as awaywins,
         (select coalesce(sum(home_score),0) ) as homegoals, (select coalesce(sum(away_score),0) ) as awaygoals from games
         where dato > date('now', 'start of month')
-        ").unwrap();
+        ").load(&*conn).unwrap();
 
-    let homeawaystats: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-    Homeawaystats {
-            homewins: row.get(0),
-            awaywins: row.get(1),
-            homegoals: row.get(2),
-            awaygoals: row.get(3),
-        }
-    })
-    .unwrap()
-    .map(Result::unwrap)
-    .collect();
     println!("Stats: {:?}",homeawaystats);
 
     context.insert("homeawaystats", &homeawaystats);
@@ -120,7 +114,7 @@ pub fn ratings<'a>() -> ContRes<'a> {
 }
 
 #[get("/reset/ratings")]
-pub fn reset() -> Redirect {
-    reset_ratings();
+pub fn reset(conn: DbConn, players: Players) -> Redirect {
+    players.reset(&conn);
     Redirect::to("/")
 }

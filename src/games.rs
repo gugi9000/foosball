@@ -1,34 +1,16 @@
 use crate::*;
 
+use diesel::sql_types::Integer;
+
 #[get("/newgame")]
-pub fn newgame<'a>() -> ContRes<'a> {
-    respond_page("newgame", newgame_con())
+pub fn newgame<'a>(conn: DbConn) -> ContRes<'a> {
+    respond_page("newgame", newgame_con(conn))
 }
 
-pub fn newgame_con() -> Context {
-    let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name FROM players order by random()").unwrap();
-    let names: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-            Named {
-                id: row.get(0),
-                name: row.get(1)
-            }
-        })
-        .unwrap()
-        .map(Result::unwrap)
-        .collect();
+pub fn newgame_con(conn: DbConn) -> Context {
+    let names: Vec<model::Player> = diesel::sql_query("SELECT id, name FROM players order by random()").load(&*conn).unwrap();
 
-    let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
-    let balls: Vec<_> = ballstmt.query_map(NO_PARAMS, |row| {
-            Ball {
-                id: row.get(0),
-                name: row.get(1),
-                img: row.get(2),
-            }
-        })
-        .unwrap()
-        .map(Result::unwrap)
-        .collect();
+    let balls = model::Ball::read_all(&*conn);
 
     let mut context = create_context("games");
 
@@ -50,54 +32,57 @@ pub struct NewGame {
 }
 
 #[post("/newgame/submit", data = "<f>")]
-pub fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
+pub fn submit_newgame<'a>(conn: DbConn, f: Form<NewGame>) -> Resp<'a> {
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
-        let mut context = newgame_con();
+        let mut context = newgame_con(conn);
         context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 
     if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
        f.home == f.away || f.home_score > 10 || f.away_score > 10 {
-        let mut context = newgame_con();
+        let mut context = newgame_con(conn);
 
         context.insert("fejl",
                        &"Den indtastede kamp er ikke lovlig 😜");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 
-    let res = lock_database().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
-                            ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
-                           &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
+    let res = diesel::sql_query("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
+        ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)")
+        .bind::<Integer, _>(f.home)
+        .bind::<Integer, _>(f.away)
+        .bind::<Integer, _>(f.home_score)
+        .bind::<Integer, _>(f.away_score)
+        .bind::<Integer, _>(f.ball)
+        .execute(&*conn)
+        .unwrap();
     println!("{:?}", res);
 
     Resp::red(Redirect::to("/"))
 }
 
 #[get("/games")]
-pub fn games<'a>() -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
-                      (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
-                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g WHERE dato > date('now', 'start of month') ORDER BY dato DESC")
-            .unwrap();
-    let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
+pub fn games<'a>(conn: DbConn) -> ContRes<'a> {
+    let results: Vec<model::PlayedGameQuery> = diesel::sql_query("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
+              (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
+              away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id) as ball_img, \
+              (SELECT name FROM balls b WHERE ball_id = b.id) as ball_name, dato FROM games g WHERE dato > date('now', 'start of month') ORDER BY dato DESC")
+        .load(&*conn)
+        .unwrap();
+    let games: Vec<_> = results.into_iter().map(|row| {
             PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
+                home: row.home,
+                away: row.away,
+                home_score: row.home_score,
+                away_score: row.away_score,
+                ball: row.ball_img,
+                ball_name: row.ball_name,
+                dato: row.dato,
             }
         })
-        .unwrap()
-        .map(Result::unwrap)
         .collect();
 
     let mut context = create_context("games");
