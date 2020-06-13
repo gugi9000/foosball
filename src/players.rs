@@ -1,16 +1,10 @@
 use crate::*;
 
+use diesel::sql_types::Text;
+
 #[get("/players")]
-pub fn players<'a>() -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
-
-    let mut players = Vec::new();
-
-    for p in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
-        let (id, name) = p.unwrap();
-        players.push(Named{id: id, name: name});
-    }
+pub fn players<'a>(conn: DbConn) -> ContRes<'a> {
+    let players = model::Player::read_all_ordered(&conn);
 
     let mut context = create_context("players");
     context.insert("players", &players);
@@ -19,30 +13,28 @@ pub fn players<'a>() -> ContRes<'a> {
 }
 
 #[get("/player/<name>")]
-pub fn player<'a>(name: String) -> ContRes<'a> {
-    let conn = lock_database();
-    let mut stmt =
-        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
-                      (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
-                      away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
-                      (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g \
-                      where (home = ?1) or (away = ?1) \
-                      AND dato > date('now', 'start of month') \
-                      ORDER BY ID DESC")
-            .unwrap();
-    let games: Vec<_> = stmt.query_map(&[&name], |row| {
+pub fn player<'a>(conn: DbConn, name: String) -> ContRes<'a> {
+    let results: Vec<model::PlayedGameQuery> = diesel::sql_query("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
+                    (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
+                    away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id) as ball_img, \
+                    (SELECT name FROM balls b WHERE ball_id = b.id) as ball_name, dato FROM games g \
+                    where (home = ?1) or (away = ?1) \
+                    AND dato > date('now', 'start of month') \
+                    ORDER BY ID DESC")
+        .bind::<Text, _>(&name)
+        .load(&*conn)
+        .unwrap();
+    let games: Vec<_> = results.into_iter().map(|row| {
             PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
+                home: row.home,
+                away: row.away,
+                home_score: row.home_score,
+                away_score: row.away_score,
+                ball: row.ball_img,
+                ball_name: row.ball_name,
+                dato: row.dato,
             }
         })
-        .unwrap()
-        .map(Result::unwrap)
         .collect();
 
     let mut context = create_context("players");
@@ -66,7 +58,7 @@ pub struct NewPlayerQuery {
 }
 
 #[post("/newplayer/submit", data = "<f>")]
-pub fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
+pub fn submit_newplayer<'r>(conn: DbConn, players: Players, f: Form<NewPlayerQuery>) -> Resp<'r> {
     let NewPlayerQuery{name, secret, ..} = f.into_inner();
 
     let mut context = create_context("players");
@@ -75,12 +67,12 @@ pub fn submit_newplayer<'r>(f: Form<NewPlayerQuery>) -> Resp<'r> {
     } else if name.is_empty() {
         context.insert("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
-        let n = lock_database().execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
+        let n = model::InsertablePlayer{name}.insert(&conn);
 
         if n == 0 {
             context.insert("fejl", &"Den indtastede spiller eksisterer allerede 💩");
         } else {
-            reset_ratings();
+            players.reset(&conn);
             return Resp::red(Redirect::to("/"));
         }
     }

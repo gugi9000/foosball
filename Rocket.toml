@@ -2,3 +2,6 @@
 address = "localhost"
 port = 5000
 log = "normal"
+
+[global.databases]
+ratings = { url = "ratings.db" }

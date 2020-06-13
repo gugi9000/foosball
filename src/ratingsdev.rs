@@ -12,16 +12,19 @@ pub fn ratingsdev<'a>() -> ContRes<'a> {
 use std::collections::BTreeMap;
 
 #[get("/data/ratingsdev.tsv")]
-pub fn developmenttsv() -> String {
+pub fn developmenttsv(conn: DbConn, players: Players) -> String {
     // HACK This seems a bit weird, but it works
     let mut ratings_history = BTreeMap::<String, HashMap<i32, f64>>::new();
 
-    ratings::update_new_ratings();
+    {
+        let mut players = players.lock().unwrap();
+        ratings::update_new_ratings(&conn, &mut players);
+    }
 
     let mut data = "date".to_owned();
     let mut names = Vec::new();
 
-    for (&id, player) in PLAYERS.lock().unwrap().iter().filter(|&(_, p)| p.kampe > 0) {
+    for (&id, player) in players.lock().unwrap().iter().filter(|&(_, p)| p.kampe > 0) {
         data.push('\t');
         data.push_str(&player.name);
         names.push((id, player.name.clone()));
