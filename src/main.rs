@@ -11,7 +11,7 @@ use rocket::{
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use tera::{compile_templates, try_get_value, Context, Tera, Value};
+use tera::{try_get_value, Context, Tera, Value};
 use bbt::{Rater, Rating};
 use lazy_static::*;
 
@@ -75,16 +75,16 @@ pub struct Config {
     streak_modifier: f64,
 }
 
-fn egg_filter(value: Value, _args: HashMap<String, Value>) -> tera::Result<Value> {
+fn egg_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
     let goals = try_get_value!("egg", "value", i32, value);
     if goals == 0 {
         Ok(Value::String("🥚".to_owned()))
     } else {
-        Ok(value)
+        Ok(value.clone())
     }
 }
 
-fn da_genitive_filter(value: Value, _args: HashMap<String, Value>) -> tera::Result<Value> {
+fn da_genitive_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
     let mut name = try_get_value!("genitiv", "value", String, value);
     match name.chars().last() {
         Some('s') | Some('x') | Some('z') => name.push('\''),
@@ -93,14 +93,14 @@ fn da_genitive_filter(value: Value, _args: HashMap<String, Value>) -> tera::Resu
     Ok(Value::String(name))
 }
 
-fn abs_filter(value: Value, _: HashMap<String, Value>) -> tera::Result<Value> {
+fn abs_filter(value: &Value, _: &HashMap<String, Value>) -> tera::Result<Value> {
     let num = try_get_value!("abs", "value", i32, value);
     Ok(num.abs().into())
 }
 
 lazy_static! {
     static ref TERA: Tera = {
-        let mut tera = compile_templates!("templates/**/*");
+        let mut tera = Tera::new("templates/**/*").unwrap();
         tera.autoescape_on(vec![]);
         tera.register_filter("egg", egg_filter);
         tera.register_filter("abs", abs_filter);
