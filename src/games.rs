@@ -3,7 +3,7 @@ use rocket::{form::FromForm, get, post};
 use crate::*;
 
 #[get("/newgame")]
-pub fn newgame<'a>() -> ResHtml<'a> {
+pub fn newgame<'a>() -> ResHtml {
     respond_page("newgame", newgame_con())
 }
 
@@ -79,7 +79,7 @@ pub fn submit_newgame(f: Form<NewGame>) -> Resp<RawHtml<String>> {
 }
 
 #[get("/games")]
-pub fn games<'a>() -> ResHtml<'a> {
+pub fn games<'a>() -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \

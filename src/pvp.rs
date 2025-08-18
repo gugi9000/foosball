@@ -3,7 +3,7 @@ use rocket::get;
 use crate::*;
 
 #[get("/pvp")]
-pub fn pvpindex<'a>() -> ResHtml<'a> {
+pub fn pvpindex<'a>() -> ResHtml {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
     let names: Vec<_> = stmt.query_map((), |row| {
@@ -23,7 +23,7 @@ pub fn pvpindex<'a>() -> ResHtml<'a> {
 }
 
 #[get("/pvp/<p1>/<p2>")]
-pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml<'a> {
+pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \

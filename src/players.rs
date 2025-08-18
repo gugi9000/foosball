@@ -3,7 +3,7 @@ use rocket::{get, post, FromForm};
 use crate::*;
 
 #[get("/players")]
-pub fn players<'a>() -> ResHtml<'a> {
+pub fn players<'a>() -> ResHtml {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
 
@@ -21,7 +21,7 @@ pub fn players<'a>() -> ResHtml<'a> {
 }
 
 #[get("/player/<name>")]
-pub fn player<'a>(name: String) -> ResHtml<'a> {
+pub fn player<'a>(name: String) -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -55,7 +55,7 @@ pub fn player<'a>(name: String) -> ResHtml<'a> {
 }
 
 #[get("/newplayer")]
-pub fn newplayer<'a>() -> ResHtml<'a> {
+pub fn newplayer<'a>() -> ResHtml {
     respond_page("newplayer", create_context("players"))
 }
 

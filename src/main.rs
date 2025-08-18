@@ -28,8 +28,8 @@ const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const INITIAL_DATE_CAP: &'static str = "now','start of month";
 
-pub type Res<'a, T = Response<'a>> = Result<T, Status>;
-pub type ResHtml<'a> = Res<'a, RawHtml<String>>;
+pub type Res<T> = Result<T, Status>;
+pub type ResHtml = Res<RawHtml<String>>;
 
 struct IgnoreField;
 
@@ -58,7 +58,7 @@ impl<T> Resp<T> {
 }
 
 impl<'r, 'o: 'r, T: Responder<'r, 'o>> Responder<'r, 'o> for Resp<T> {
-    fn respond_to(self, req: &'r Request) -> Res<'o> {
+    fn respond_to(self, req: &'r Request) -> Res<Response<'o>> {
         match self {
             Resp::ContRes(a) => a.respond_to(req),
             Resp::Redirect(a) => a.respond_to(req),
@@ -148,14 +148,14 @@ lazy_static! {
     };
 }
 
-pub fn tera_render(template: &'_ str, c: Context) -> Res<'_, RawHtml<String>> {
+pub fn tera_render(template: &'_ str, c: Context) -> Res<RawHtml<String>> {
     match TERA.render(template, &c) {
         Ok(s) => Ok(RawHtml(s)),
         Err(_) => Err(Status::InternalServerError)
     }
 }
 
-pub fn respond_page(page: &'_ str, c: Context) -> Res<'_, RawHtml<String>> {
+pub fn respond_page(page: &'_ str, c: Context) -> Res<RawHtml<String>> {
     tera_render(&format!("pages/{}.html", page), c)
 }
 

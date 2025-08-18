@@ -48,7 +48,7 @@ fn get_and_update_new_ratings() -> Vec<PlayerData> {
 }
 
 #[get("/")]
-pub fn root<'a>() -> ResHtml<'a> {
+pub fn root<'a>() -> ResHtml {
     let mut context = create_context("root");
     context.insert("players", &get_and_update_new_ratings());
 
@@ -89,7 +89,7 @@ struct Homeawaystats {
 }
 
 #[get("/ratings")]
-pub fn ratings<'a>() -> ResHtml<'a> {
+pub fn ratings<'a>() -> ResHtml {
     let mut context = create_context("rating");
     context.insert("players", &get_and_update_new_ratings());
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);

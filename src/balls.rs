@@ -11,7 +11,7 @@ pub struct Ballstats {
 }
 
 #[get("/balls")]
-pub fn balls<'a>() -> ResHtml<'a> {
+pub fn balls<'a>() -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
@@ -35,7 +35,7 @@ pub fn balls<'a>() -> ResHtml<'a> {
 }
 
 #[get("/ball/<ball>")]
-pub fn ball<'a>(ball:String) -> ResHtml<'a> {
+pub fn ball<'a>(ball:String) -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
@@ -71,7 +71,7 @@ pub fn ball<'a>(ball:String) -> ResHtml<'a> {
 }
 
 #[get("/newball")]
-pub fn newball<'a>() -> ResHtml<'a> {
+pub fn newball<'a>() -> ResHtml {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
 
