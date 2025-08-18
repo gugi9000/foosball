@@ -11,7 +11,7 @@ use std::{
 use rocket::{
     catchers, form::{self, Form, FromFormField, ValueField}, fs::NamedFile, http::Status, launch, request::Request, response::{content::RawHtml, Redirect, Responder, Response}, routes,
 };
-use rusqlite::{Connection, NO_PARAMS};
+use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use tera::{compile_templates, try_get_value, Context, Tera, Value};
 use bbt::{Rater, Rating};
@@ -169,7 +169,7 @@ fn gen_players() -> HashMap<i32, PlayerRating> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut players = HashMap::new();
-    for p in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
+    for p in stmt.query_map((), |row| Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))).unwrap() {
         let (id, name) = p.unwrap();
         players.insert(id, PlayerRating::new(name));
     }
@@ -196,18 +196,18 @@ fn get_games<'a>() -> Vec<Game> {
         conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}') order by dato asc", *last_date))
             .unwrap();
 
-    let gs = stmt.query_map(NO_PARAMS, |row| {
-            let home_score = row.get::<_, i32>(2);
-            let away_score = row.get::<_, i32>(3);
+    let gs = stmt.query_map((), |row| {
+            let home_score = row.get::<_, i32>(2)?;
+            let away_score = row.get::<_, i32>(3)?;
             // FIXME: 
-            *last_date = row.get(4);
-            Game {
-                home: row.get(0),
-                away: row.get(1),
+            *last_date = row.get(4)?;
+            Ok(Game {
+                home: row.get(0)?,
+                away: row.get(1)?,
                 dato: last_date.clone(),
                 ace: home_score == 0 || away_score == 0,
                 home_win: home_score > away_score,
-            }
+            })
         })
         .unwrap()
         .map(Result::unwrap);

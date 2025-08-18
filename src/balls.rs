@@ -17,13 +17,13 @@ pub fn balls<'a>() -> ResHtml<'a> {
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
             .unwrap();
     
-    let ballstats: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-        Ballstats {
-            name: row.get(3),
-            img: row.get(4),
-            games: row.get(2),
-            goals: row.get(1),
-        }
+    let ballstats: Vec<_> = stmt.query_map((), |row| {
+        Ok(Ballstats {
+            name: row.get(3)?,
+            img: row.get(4)?,
+            games: row.get(2)?,
+            goals: row.get(1)?,
+        })
     })
     .unwrap()
     .map(Result::unwrap)
@@ -49,15 +49,15 @@ pub fn ball<'a>(ball:String) -> ResHtml<'a> {
             ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[&ball], |row| {
-            PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
-            }
+            Ok(PlayedGame {
+                home: row.get(0)?,
+                away: row.get(1)?,
+                home_score: row.get(2)?,
+                away_score: row.get(3)?,
+                ball: row.get(5)?,
+                ball_name: row.get(6)?,
+                dato: row.get(7)?,
+            })
         })
         .unwrap()
         .map(Result::unwrap)
@@ -77,7 +77,7 @@ pub fn newball<'a>() -> ResHtml<'a> {
 
     let mut balls = Vec::new();
 
-    for ball in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1), row.get::<_, String>(2))).unwrap() {
+    for ball in stmt.query_map((), |row| Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?))).unwrap() {
         let (id, name, img) = ball.unwrap();
         balls.push(Ball{id: id, name: name, img: img});
     }

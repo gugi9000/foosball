@@ -10,23 +10,23 @@ pub fn newgame<'a>() -> ResHtml<'a> {
 pub fn newgame_con() -> Context {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by random()").unwrap();
-    let names: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-            Named {
-                id: row.get(0),
-                name: row.get(1)
-            }
+    let names: Vec<_> = stmt.query_map((), |row| {
+            Ok(Named {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
         })
         .unwrap()
         .map(Result::unwrap)
         .collect();
 
     let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
-    let balls: Vec<_> = ballstmt.query_map(NO_PARAMS, |row| {
-            Ball {
-                id: row.get(0),
-                name: row.get(1),
-                img: row.get(2),
-            }
+    let balls: Vec<_> = ballstmt.query_map((), |row| {
+            Ok(Ball {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                img: row.get(2)?,
+            })
         })
         .unwrap()
         .map(Result::unwrap)
@@ -87,16 +87,16 @@ pub fn games<'a>() -> ResHtml<'a> {
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g WHERE dato > date('now', 'start of month') ORDER BY dato DESC")
             .unwrap();
-    let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-            PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
-            }
+    let games: Vec<_> = stmt.query_map((), |row| {
+            Ok(PlayedGame {
+                home: row.get(0)?,
+                away: row.get(1)?,
+                home_score: row.get(2)?,
+                away_score: row.get(3)?,
+                ball: row.get(5)?,
+                ball_name: row.get(6)?,
+                dato: row.get(7)?,
+            })
         })
         .unwrap()
         .map(Result::unwrap)

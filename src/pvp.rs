@@ -6,11 +6,11 @@ use crate::*;
 pub fn pvpindex<'a>() -> ResHtml<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
-    let names: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-            Named {
-                id: row.get(0),
-                name: row.get(1)
-            }
+    let names: Vec<_> = stmt.query_map((), |row| {
+            Ok(Named {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
         })
         .unwrap()
         .map(Result::unwrap)
@@ -39,15 +39,15 @@ pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml<'a> {
 
     let pvp: Vec<_> = stmt.query_map(&[&p1, &p2], |row| {
             let game = PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
+                home: row.get(0)?,
+                away: row.get(1)?,
+                home_score: row.get(2)?,
+                away_score: row.get(3)?,
+                ball: row.get(5)?,
+                ball_name: row.get(6)?,
+                dato: row.get(7)?,
             };
-            let home_id: i32 = row.get(8);
+            let home_id: i32 = row.get(8)?;
 
             let home_win = game.home_score > game.away_score;
             {
@@ -67,7 +67,7 @@ pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml<'a> {
                 if !home_win { away.1 += 1 }
             }
 
-            game
+            Ok(game)
         })
         .unwrap()
         .map(Result::unwrap)

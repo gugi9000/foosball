@@ -9,7 +9,7 @@ pub fn players<'a>() -> ResHtml<'a> {
 
     let mut players = Vec::new();
 
-    for p in stmt.query_map(NO_PARAMS, |row| (row.get::<_, i32>(0), row.get::<_, String>(1))).unwrap() {
+    for p in stmt.query_map((), |row| Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))).unwrap() {
         let (id, name) = p.unwrap();
         players.push(Named{id: id, name: name});
     }
@@ -33,15 +33,15 @@ pub fn player<'a>(name: String) -> ResHtml<'a> {
                       ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt.query_map(&[&name], |row| {
-            PlayedGame {
-                home: row.get(0),
-                away: row.get(1),
-                home_score: row.get(2),
-                away_score: row.get(3),
-                ball: row.get(5),
-                ball_name: row.get(6),
-                dato: row.get(7),
-            }
+            Ok(PlayedGame {
+                home: row.get(0)?,
+                away: row.get(1)?,
+                home_score: row.get(2)?,
+                away_score: row.get(3)?,
+                ball: row.get(5)?,
+                ball_name: row.get(6)?,
+                dato: row.get(7)?,
+            })
         })
         .unwrap()
         .map(Result::unwrap)

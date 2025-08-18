@@ -60,16 +60,16 @@ pub fn root<'a>() -> ResHtml<'a> {
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5
                      ")
             .unwrap();
-    let games: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-        PlayedGame {
-            home: row.get(0),
-            away: row.get(1),
-            home_score: row.get(2),
-            away_score: row.get(3),
-            ball: row.get(5),
-            ball_name: row.get(6),
-            dato: row.get(7),
-        }
+    let games: Vec<_> = stmt.query_map((), |row| {
+        Ok(PlayedGame {
+            home: row.get(0)?,
+            away: row.get(1)?,
+            home_score: row.get(2)?,
+            away_score: row.get(3)?,
+            ball: row.get(5)?,
+            ball_name: row.get(6)?,
+            dato: row.get(7)?,
+        })
     })
     .unwrap()
     .map(Result::unwrap)
@@ -103,13 +103,13 @@ pub fn ratings<'a>() -> ResHtml<'a> {
         where dato > date('now', 'start of month')
         ").unwrap();
 
-    let homeawaystats: Vec<_> = stmt.query_map(NO_PARAMS, |row| {
-    Homeawaystats {
-            homewins: row.get(0),
-            awaywins: row.get(1),
-            homegoals: row.get(2),
-            awaygoals: row.get(3),
-        }
+    let homeawaystats: Vec<_> = stmt.query_map((), |row| {
+        Ok(Homeawaystats {
+            homewins: row.get(0)?,
+            awaywins: row.get(1)?,
+            homegoals: row.get(2)?,
+            awaygoals: row.get(3)?,
+        })
     })
     .unwrap()
     .map(Result::unwrap)
