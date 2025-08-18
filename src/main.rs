@@ -1,5 +1,3 @@
-// #![feature(decl_macro, proc_macro_hygiene)]
-
 use std::{
     fs::File,
     path::{Path, PathBuf},
