@@ -1,7 +1,9 @@
+use rocket::{form::FromForm, get, post};
+
 use crate::*;
 
 #[get("/newgame")]
-pub fn newgame<'a>() -> ContRes<'a> {
+pub fn newgame<'a>() -> ResHtml<'a> {
     respond_page("newgame", newgame_con())
 }
 
@@ -50,7 +52,7 @@ pub struct NewGame {
 }
 
 #[post("/newgame/submit", data = "<f>")]
-pub fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
+pub fn submit_newgame(f: Form<NewGame>) -> Resp<RawHtml<String>> {
     let f = f.into_inner();
 
     if f.secret != CONFIG.secret {
@@ -77,7 +79,7 @@ pub fn submit_newgame<'a>(f: Form<NewGame>) -> Resp<'a> {
 }
 
 #[get("/games")]
-pub fn games<'a>() -> ContRes<'a> {
+pub fn games<'a>() -> ResHtml<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \

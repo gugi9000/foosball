@@ -1,4 +1,6 @@
 use crate::*;
+use rocket::{form::FromForm, get, post};
+use serde_derive::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct Ballstats {
@@ -9,7 +11,7 @@ pub struct Ballstats {
 }
 
 #[get("/balls")]
-pub fn balls<'a>() -> ContRes<'a> {
+pub fn balls<'a>() -> ResHtml<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
@@ -33,7 +35,7 @@ pub fn balls<'a>() -> ContRes<'a> {
 }
 
 #[get("/ball/<ball>")]
-pub fn ball<'a>(ball:String) -> ContRes<'a> {
+pub fn ball<'a>(ball:String) -> ResHtml<'a> {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
@@ -69,7 +71,7 @@ pub fn ball<'a>(ball:String) -> ContRes<'a> {
 }
 
 #[get("/newball")]
-pub fn newball<'a>() -> ContRes<'a> {
+pub fn newball<'a>() -> ResHtml<'a> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
 
@@ -96,7 +98,7 @@ pub struct NewBallQuery {
 }
 
 #[post("/newball/submit", data = "<f>")]
-pub fn submit_newball<'r>(f: Form<NewBallQuery>) -> Resp<'r> {
+pub fn submit_newball(f: Form<NewBallQuery>) -> Resp<RawHtml<String>> {
     let NewBallQuery{name, img, secret, ..} = f.into_inner();
 
     let mut context = create_context("balls");

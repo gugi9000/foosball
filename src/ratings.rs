@@ -1,3 +1,5 @@
+use rocket::get;
+
 use crate::*;
 
 pub fn update_new_ratings() {
@@ -46,7 +48,7 @@ fn get_and_update_new_ratings() -> Vec<PlayerData> {
 }
 
 #[get("/")]
-pub fn root<'a>() -> ContRes<'a> {
+pub fn root<'a>() -> ResHtml<'a> {
     let mut context = create_context("root");
     context.insert("players", &get_and_update_new_ratings());
 
@@ -87,7 +89,7 @@ struct Homeawaystats {
 }
 
 #[get("/ratings")]
-pub fn ratings<'a>() -> ContRes<'a> {
+pub fn ratings<'a>() -> ResHtml<'a> {
     let mut context = create_context("rating");
     context.insert("players", &get_and_update_new_ratings());
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);

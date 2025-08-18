@@ -1,11 +1,4 @@
-#![feature(decl_macro, proc_macro_hygiene)]
-#[macro_use]
-extern crate tera;
-#[macro_use]
-extern crate serde_derive;
-#[macro_use]
-extern crate rocket;
-
+// #![feature(decl_macro, proc_macro_hygiene)]
 
 use std::{
     fs::File,
@@ -16,12 +9,11 @@ use std::{
     sync::{Mutex, MutexGuard}
 };
 use rocket::{
-    request::{Request, FromFormValue, Form},
-    response::{Content, NamedFile, Response, Responder, Redirect},
-    http::{RawStr, Status, ContentType}
+    catchers, form::{self, Form, FromFormField, ValueField}, fs::NamedFile, http::Status, launch, request::Request, response::{content::RawHtml, Redirect, Responder, Response}, routes,
 };
 use rusqlite::{Connection, NO_PARAMS};
-use tera::{Tera, Context, Value};
+use serde::{Deserialize, Serialize};
+use tera::{compile_templates, try_get_value, Context, Tera, Value};
 use bbt::{Rater, Rating};
 use lazy_static::*;
 
@@ -38,15 +30,13 @@ const BETA: f64 = 5000.0;
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 const INITIAL_DATE_CAP: &'static str = "now','start of month";
 
-pub type Res<'a> = Result<Response<'a>, Status>;
-pub type ContRes<'a> = Content<Res<'a>>;
+pub type Res<'a, T = Response<'a>> = Result<T, Status>;
+pub type ResHtml<'a> = Res<'a, RawHtml<String>>;
 
 struct IgnoreField;
 
-impl<'a> FromFormValue<'a> for IgnoreField {
-    type Error = &'a str;
-
-    fn from_form_value(_: &'a RawStr) -> Result<Self, Self::Error> {
+impl FromFormField<'_> for IgnoreField {
+    fn from_value(_: ValueField) -> form::Result<Self> {
         Ok(IgnoreField)
     }
 
@@ -55,13 +45,13 @@ impl<'a> FromFormValue<'a> for IgnoreField {
     }
 }
 
-pub enum Resp<'a> {
-    ContRes(ContRes<'a>),
+pub enum Resp<T> {
+    ContRes(Result<T, Status>),
     Redirect(Redirect)
 }
 
-impl<'a> Resp<'a> {
-    pub fn cont(cont: ContRes<'a>) -> Self {
+impl<T> Resp<T> {
+    pub fn cont(cont: Result<T, Status>) -> Self {
         Resp::ContRes(cont)
     }
     pub fn red(red: Redirect) -> Self {
@@ -69,8 +59,8 @@ impl<'a> Resp<'a> {
     }
 }
 
-impl<'a> Responder<'a> for Resp<'a> {
-    fn respond_to(self, req: &Request) -> Res<'a> {
+impl<'r, 'o: 'r, T: Responder<'r, 'o>> Responder<'r, 'o> for Resp<T> {
+    fn respond_to(self, req: &'r Request) -> Res<'o> {
         match self {
             Resp::ContRes(a) => a.respond_to(req),
             Resp::Redirect(a) => a.respond_to(req),
@@ -160,16 +150,15 @@ lazy_static! {
     };
 }
 
-pub fn tera_render(template: &str, c: Context) -> Res<'static> {
-    use std::io::Cursor;
+pub fn tera_render(template: &'_ str, c: Context) -> Res<'_, RawHtml<String>> {
     match TERA.render(template, &c) {
-        Ok(s) => Response::build().sized_body(Cursor::new(s)).ok(),
+        Ok(s) => Ok(RawHtml(s)),
         Err(_) => Err(Status::InternalServerError)
     }
 }
 
-pub fn respond_page(page: &'static str, c: Context) -> ContRes<'static> {
-    Content(ContentType::HTML, tera_render(&format!("pages/{}.html", page), c))
+pub fn respond_page(page: &'_ str, c: Context) -> Res<'_, RawHtml<String>> {
+    tera_render(&format!("pages/{}.html", page), c)
 }
 
 pub fn lock_database() -> MutexGuard<'static, Connection> {
@@ -358,10 +347,11 @@ impl PlayerRating {
     }
 }
 
-fn main() {
+#[launch]
+fn rocket() -> _ {
     use crate::errors::*;
-    &*CONFIG;
-    rocket::ignite()
+    _ = &*CONFIG;
+    rocket::build()
         .mount("/",
                routes![crate::ratingsdev::ratingsdev,
                        crate::ratingsdev::developmenttsv,
@@ -384,6 +374,5 @@ fn main() {
                        crate::ratings::reset,
                        crate::ratings::root,
                        crate::statics::static_handler])
-        .register(catchers![page_not_found, bad_request, server_error])
-        .launch();
+        .register("/", catchers![page_not_found, bad_request, server_error])
 }

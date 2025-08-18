@@ -1,7 +1,9 @@
+use rocket::get;
+
 use crate::*;
 
 #[get("/ratingsdev")]
-pub fn ratingsdev<'a>() -> ContRes<'a> {
+pub fn ratingsdev<'a>() -> ResHtml<'a> {
     let mut context = create_context("analysis");
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
     context.insert("streak_modifier", &CONFIG.streak_modifier);
