@@ -3,10 +3,13 @@ use rocket::get;
 use crate::*;
 
 #[get("/pvp")]
-pub fn pvpindex<'a>() -> ResHtml {
+pub fn pvpindex() -> ResHtml {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name FROM players order by name").unwrap();
-    let names: Vec<_> = stmt.query_map((), |row| {
+    let mut stmt = conn
+        .prepare("SELECT id, name FROM players order by name")
+        .unwrap();
+    let names: Vec<_> = stmt
+        .query_map((), |row| {
             Ok(Named {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -23,7 +26,7 @@ pub fn pvpindex<'a>() -> ResHtml {
 }
 
 #[get("/pvp/<p1>/<p2>")]
-pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml {
+pub fn pvp(p1: i32, p2: i32) -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -37,7 +40,8 @@ pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml {
 
     let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));
 
-    let pvp: Vec<_> = stmt.query_map(&[&p1, &p2], |row| {
+    let pvp: Vec<_> = stmt
+        .query_map([p1, p2], |row| {
             let game = PlayedGame {
                 home: row.get(0)?,
                 away: row.get(1)?,
@@ -51,20 +55,32 @@ pub fn pvp<'a>(p1: i32, p2: i32) -> ResHtml {
 
             let home_win = game.home_score > game.away_score;
             {
-                let home = if home_id == p1 {&mut map.0} else {&mut map.1};
+                let home = if home_id == p1 {
+                    &mut map.0
+                } else {
+                    &mut map.1
+                };
                 if home.2.is_empty() {
                     home.2 = game.home.clone();
                 }
                 home.0 += game.home_score;
-                if home_win { home.1 += 1 }
+                if home_win {
+                    home.1 += 1
+                }
             }
             {
-                let away = if home_id == p1 {&mut map.1} else {&mut map.0};
+                let away = if home_id == p1 {
+                    &mut map.1
+                } else {
+                    &mut map.0
+                };
                 if away.2.is_empty() {
                     away.2 = game.away.clone();
                 }
                 away.0 += game.away_score;
-                if !home_win { away.1 += 1 }
+                if !home_win {
+                    away.1 += 1
+                }
             }
 
             Ok(game)

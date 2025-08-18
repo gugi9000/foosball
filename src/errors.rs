@@ -3,16 +3,16 @@ use rocket::catch;
 use crate::*;
 
 #[catch(404)]
-pub fn page_not_found<'a>() -> ResHtml {
+pub fn page_not_found() -> ResHtml {
     respond_page("404", create_context("404"))
 }
 
 #[catch(400)]
-pub fn bad_request<'a>() -> ResHtml {
+pub fn bad_request() -> ResHtml {
     respond_page("400", create_context("400"))
 }
 
 #[catch(500)]
-pub fn server_error<'a>() -> ResHtml {
+pub fn server_error() -> ResHtml {
     respond_page("500", create_context("500"))
 }

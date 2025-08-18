@@ -3,14 +3,17 @@ use rocket::{form::FromForm, get, post};
 use crate::*;
 
 #[get("/newgame")]
-pub fn newgame<'a>() -> ResHtml {
+pub fn newgame() -> ResHtml {
     respond_page("newgame", newgame_con())
 }
 
 pub fn newgame_con() -> Context {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name FROM players order by random()").unwrap();
-    let names: Vec<_> = stmt.query_map((), |row| {
+    let mut stmt = conn
+        .prepare("SELECT id, name FROM players order by random()")
+        .unwrap();
+    let names: Vec<_> = stmt
+        .query_map((), |row| {
             Ok(Named {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -21,7 +24,8 @@ pub fn newgame_con() -> Context {
         .collect();
 
     let mut ballstmt = conn.prepare("SELECT id, name, img FROM balls").unwrap();
-    let balls: Vec<_> = ballstmt.query_map((), |row| {
+    let balls: Vec<_> = ballstmt
+        .query_map((), |row| {
             Ok(Ball {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -41,14 +45,14 @@ pub fn newgame_con() -> Context {
 
 #[derive(FromForm)]
 pub struct NewGame {
-  home: i32,
-  away: i32,
-  home_score: i32,
-  away_score: i32,
-  ball: i32,
-  secret: String,
-  #[allow(dead_code)]
-  submit: IgnoreField
+    home: i32,
+    away: i32,
+    home_score: i32,
+    away_score: i32,
+    ball: i32,
+    secret: String,
+    #[allow(dead_code)]
+    submit: IgnoreField,
 }
 
 #[post("/newgame/submit", data = "<f>")]
@@ -61,25 +65,30 @@ pub fn submit_newgame(f: Form<NewGame>) -> Resp<RawHtml<String>> {
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 
-    if !(f.home_score == 10 || f.away_score == 10) || f.home_score == f.away_score ||
-       f.home == f.away || f.home_score > 10 || f.away_score > 10 {
+    if !(f.home_score == 10 || f.away_score == 10)
+        || f.home_score == f.away_score
+        || f.home == f.away
+        || f.home_score > 10
+        || f.away_score > 10
+    {
         let mut context = newgame_con();
 
-        context.insert("fejl",
-                       &"Den indtastede kamp er ikke lovlig 😜");
+        context.insert("fejl", &"Den indtastede kamp er ikke lovlig 😜");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 
-    let res = lock_database().execute("INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
+    let res = lock_database().execute(
+        "INSERT INTO games (home_id, away_id, home_score, away_score, dato, \
                             ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
-                           &[&f.home, &f.away, &f.home_score, &f.away_score, &f.ball]);
+        [f.home, f.away, f.home_score, f.away_score, f.ball],
+    );
     println!("{:?}", res);
 
     Resp::red(Redirect::to("/"))
 }
 
 #[get("/games")]
-pub fn games<'a>() -> ResHtml {
+pub fn games() -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
@@ -87,7 +96,8 @@ pub fn games<'a>() -> ResHtml {
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g WHERE dato > date('now', 'start of month') ORDER BY dato DESC")
             .unwrap();
-    let games: Vec<_> = stmt.query_map((), |row| {
+    let games: Vec<_> = stmt
+        .query_map((), |row| {
             Ok(PlayedGame {
                 home: row.get(0)?,
                 away: row.get(1)?,

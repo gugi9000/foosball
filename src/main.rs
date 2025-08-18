@@ -1,32 +1,40 @@
-use std::{
-    fs::File,
-    path::{Path, PathBuf},
-    io::Read,
-    cmp::Ordering::{Greater, Less},
-    collections::HashMap,
-    sync::{Mutex, MutexGuard}
-};
+use bbt::{Rater, Rating};
+use lazy_static::*;
 use rocket::{
-    catchers, form::{self, Form, FromFormField, ValueField}, fs::NamedFile, http::Status, launch, request::Request, response::{content::RawHtml, Redirect, Responder, Response}, routes,
+    catchers,
+    form::{self, Form, FromFormField, ValueField},
+    fs::NamedFile,
+    http::Status,
+    launch,
+    request::Request,
+    response::{Redirect, Responder, Response, content::RawHtml},
+    routes,
 };
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use tera::{try_get_value, Context, Tera, Value};
-use bbt::{Rater, Rating};
-use lazy_static::*;
+use std::{
+    cmp::Ordering::{Greater, Less},
+    collections::HashMap,
+    fs,
+    io::Read,
+    mem::take,
+    path::{Path, PathBuf},
+    sync::{Mutex, MutexGuard},
+};
+use tera::{Context, Tera, Value, try_get_value};
 
 mod balls;
 mod errors;
 mod games;
 mod players;
-mod statics;
-mod ratings;
 mod pvp;
+mod ratings;
 mod ratingsdev;
+mod statics;
 
 const BETA: f64 = 5000.0;
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-const INITIAL_DATE_CAP: &'static str = "now','start of month";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+const INITIAL_DATE_CAP: &str = "now','start of month";
 
 pub type Res<T> = Result<T, Status>;
 pub type ResHtml = Res<RawHtml<String>>;
@@ -45,7 +53,7 @@ impl FromFormField<'_> for IgnoreField {
 
 pub enum Resp<T> {
     ContRes(Result<T, Status>),
-    Redirect(Redirect)
+    Redirect(Redirect),
 }
 
 impl<T> Resp<T> {
@@ -88,7 +96,7 @@ fn da_genitive_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Re
     let mut name = try_get_value!("genitiv", "value", String, value);
     match name.chars().last() {
         Some('s') | Some('x') | Some('z') => name.push('\''),
-        _ => name.push('s')
+        _ => name.push('s'),
     }
     Ok(Value::String(name))
 }
@@ -129,12 +137,9 @@ lazy_static! {
     pub static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
     // Has to be a `Mutex` because `Connection` isn't `Sync`
     pub static ref DB_CONNECTION: Mutex<Connection> = Mutex::new({
-        let exists = match File::open(&CONFIG.database) {
-            Ok(_) => true,
-            Err(_) => false,
-        };
+        let exists = fs::exists(&CONFIG.database).unwrap();
         let conn = Connection::open(&CONFIG.database).unwrap();
-        if ! exists {
+        if !exists {
             println!("Database didn't exist... creating one");
             conn.execute_batch(include_str!("ratings.schema")).unwrap();
         }
@@ -151,7 +156,7 @@ lazy_static! {
 pub fn tera_render(template: &'_ str, c: Context) -> Res<RawHtml<String>> {
     match TERA.render(template, &c) {
         Ok(s) => Ok(RawHtml(s)),
-        Err(_) => Err(Status::InternalServerError)
+        Err(_) => Err(Status::InternalServerError),
     }
 }
 
@@ -167,7 +172,12 @@ fn gen_players() -> HashMap<i32, PlayerRating> {
     let conn = lock_database();
     let mut stmt = conn.prepare("SELECT id, name from players").unwrap();
     let mut players = HashMap::new();
-    for p in stmt.query_map((), |row| Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))).unwrap() {
+    for p in stmt
+        .query_map((), |row| {
+            Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap()
+    {
         let (id, name) = p.unwrap();
         players.insert(id, PlayerRating::new(name));
     }
@@ -187,17 +197,18 @@ pub struct Game {
     home_win: bool,
 }
 
-fn get_games<'a>() -> Vec<Game> {
+fn get_games() -> Vec<Game> {
     let conn = lock_database();
     let mut last_date = LAST_DATE.lock().unwrap();
     let mut stmt =
         conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}') order by dato asc", *last_date))
             .unwrap();
 
-    let gs = stmt.query_map((), |row| {
+    let gs = stmt
+        .query_map((), |row| {
             let home_score = row.get::<_, i32>(2)?;
             let away_score = row.get::<_, i32>(3)?;
-            // FIXME: 
+            // FIXME:
             *last_date = row.get(4)?;
             Ok(Game {
                 home: row.get(0)?,
@@ -226,7 +237,7 @@ struct PlayedGame {
 #[derive(Debug, Serialize)]
 struct Named {
     id: i32,
-    name: String
+    name: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -246,7 +257,7 @@ pub fn create_context(current_page: &str) -> Context {
 pub struct AggregatedRating {
     #[serde(flatten)]
     rating: Rating,
-    score: f64
+    score: f64,
 }
 
 impl AggregatedRating {
@@ -256,7 +267,7 @@ impl AggregatedRating {
             + CONFIG.streak_modifier * (streak - streak.signum());
         AggregatedRating {
             rating: p.rating.clone(),
-            score: p.rating.mu() - 3. * p.rating.sigma() + modifier
+            score: p.rating.mu() - 3. * p.rating.sigma() + modifier,
         }
     }
 }
@@ -288,8 +299,7 @@ pub struct PlayerData {
     pub aces: u32,
 }
 
-use std::mem::replace;
-use bbt::Outcome::{Win, Loss};
+use bbt::Outcome::{Loss, Win};
 
 impl PlayerRating {
     fn new<S: ToString>(name: S) -> Self {
@@ -310,12 +320,12 @@ impl PlayerRating {
         match (self.streak.cmp(&0), won) {
             (Less, false) => self.streak -= 1,
             (Greater, true) => self.streak += 1,
-            (_, false)  => self.streak = -1,
+            (_, false) => self.streak = -1,
             (_, true) => self.streak = 1,
         }
     }
     fn duel(&mut self, time: DateTime, o: Rating, won: bool) {
-        let a = replace(&mut self.rating, Default::default());
+        let a = take(&mut self.rating);
 
         let (a, _) = RATER.duel(a, o, if won { Win } else { Loss });
         self.rating = a;
@@ -327,7 +337,7 @@ impl PlayerRating {
         } else {
             self.tabte += 1;
         }
-        let rat = AggregatedRating::from_player(&self);
+        let rat = AggregatedRating::from_player(self);
         self.score_history.push((time, rat.score));
     }
     fn to_data(&self) -> PlayerData {
@@ -340,7 +350,7 @@ impl PlayerRating {
             vundne: self.vundne,
             tabte: self.tabte,
             eggs: self.eggs,
-            aces: self.aces
+            aces: self.aces,
         }
     }
 }
@@ -350,27 +360,31 @@ fn rocket() -> _ {
     use crate::errors::*;
     _ = &*CONFIG;
     rocket::build()
-        .mount("/",
-               routes![crate::ratingsdev::ratingsdev,
-                       crate::ratingsdev::developmenttsv,
-                       crate::pvp::pvp,
-                       crate::pvp::pvpindex,
-                       crate::statics::robots_handler,
-                       crate::statics::favicon_handler,
-                       crate::games::games,
-                       crate::games::newgame,
-                       crate::games::submit_newgame,
-                       crate::balls::balls,
-                       crate::balls::ball,
-                       crate::balls::newball,
-                       crate::balls::submit_newball,
-                       crate::players::players,
-                       crate::players::player,
-                       crate::players::newplayer,
-                       crate::players::submit_newplayer,
-                       crate::ratings::ratings,
-                       crate::ratings::reset,
-                       crate::ratings::root,
-                       crate::statics::static_handler])
+        .mount(
+            "/",
+            routes![
+                crate::ratingsdev::ratingsdev,
+                crate::ratingsdev::developmenttsv,
+                crate::pvp::pvp,
+                crate::pvp::pvpindex,
+                crate::statics::robots_handler,
+                crate::statics::favicon_handler,
+                crate::games::games,
+                crate::games::newgame,
+                crate::games::submit_newgame,
+                crate::balls::balls,
+                crate::balls::ball,
+                crate::balls::newball,
+                crate::balls::submit_newball,
+                crate::players::players,
+                crate::players::player,
+                crate::players::newplayer,
+                crate::players::submit_newplayer,
+                crate::ratings::ratings,
+                crate::ratings::reset,
+                crate::ratings::root,
+                crate::statics::static_handler
+            ],
+        )
         .register("/", catchers![page_not_found, bad_request, server_error])
 }

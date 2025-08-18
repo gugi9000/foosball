@@ -11,23 +11,24 @@ pub struct Ballstats {
 }
 
 #[get("/balls")]
-pub fn balls<'a>() -> ResHtml {
+pub fn balls() -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("select ball_id, sum(home_score+away_score) as goals, count(ball_id) as balls, (select name from balls where ball_id = balls.id), (select img from balls where ball_id = balls.id) FROM games WHERE dato > date('now','start of month') GROUP BY ball_id order by balls desc , goals desc")
             .unwrap();
-    
-    let ballstats: Vec<_> = stmt.query_map((), |row| {
-        Ok(Ballstats {
-            name: row.get(3)?,
-            img: row.get(4)?,
-            games: row.get(2)?,
-            goals: row.get(1)?,
+
+    let ballstats: Vec<_> = stmt
+        .query_map((), |row| {
+            Ok(Ballstats {
+                name: row.get(3)?,
+                img: row.get(4)?,
+                games: row.get(2)?,
+                goals: row.get(1)?,
+            })
         })
-    })
-    .unwrap()
-    .map(Result::unwrap)
-    .collect();
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
     let mut context = create_context("balls");
     context.insert("ballstats", &ballstats);
 
@@ -35,7 +36,7 @@ pub fn balls<'a>() -> ResHtml {
 }
 
 #[get("/ball/<ball>")]
-pub fn ball<'a>(ball:String) -> ResHtml {
+pub fn ball(ball: String) -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
@@ -48,7 +49,8 @@ pub fn ball<'a>(ball:String) -> ResHtml {
             WHERE ballname = ?1 AND dato > date('now','start of month') \
             ORDER BY ID DESC")
             .unwrap();
-    let games: Vec<_> = stmt.query_map(&[&ball], |row| {
+    let games: Vec<_> = stmt
+        .query_map([&*ball], |row| {
             Ok(PlayedGame {
                 home: row.get(0)?,
                 away: row.get(1)?,
@@ -71,20 +73,31 @@ pub fn ball<'a>(ball:String) -> ResHtml {
 }
 
 #[get("/newball")]
-pub fn newball<'a>() -> ResHtml {
+pub fn newball() -> ResHtml {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name, img from balls ORDER BY name ASC").unwrap();
+    let mut stmt = conn
+        .prepare("SELECT id, name, img from balls ORDER BY name ASC")
+        .unwrap();
 
     let mut balls = Vec::new();
 
-    for ball in stmt.query_map((), |row| Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?))).unwrap() {
+    for ball in stmt
+        .query_map((), |row| {
+            Ok((
+                row.get::<_, i32>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })
+        .unwrap()
+    {
         let (id, name, img) = ball.unwrap();
-        balls.push(Ball{id: id, name: name, img: img});
+        balls.push(Ball { id, name, img });
     }
 
     let mut context = create_context("balls");
     context.insert("balls", &balls);
-    
+
     respond_page("newball", context)
 }
 
@@ -94,12 +107,14 @@ pub struct NewBallQuery {
     img: String,
     secret: String,
     #[allow(dead_code)]
-    submit: IgnoreField
+    submit: IgnoreField,
 }
 
 #[post("/newball/submit", data = "<f>")]
 pub fn submit_newball(f: Form<NewBallQuery>) -> Resp<RawHtml<String>> {
-    let NewBallQuery{name, img, secret, ..} = f.into_inner();
+    let NewBallQuery {
+        name, img, secret, ..
+    } = f.into_inner();
 
     let mut context = create_context("balls");
     if secret != CONFIG.secret {
@@ -107,7 +122,12 @@ pub fn submit_newball(f: Form<NewBallQuery>) -> Resp<RawHtml<String>> {
     } else if name.is_empty() {
         context.insert("fejl", &"Den indtastede bold er ikke lovlig 😜");
     } else {
-        let n = lock_database().execute("INSERT INTO balls (name, img) VALUES (?, ?)", &[&img, &name]).unwrap();
+        let n = lock_database()
+            .execute(
+                "INSERT INTO balls (name, img) VALUES (?, ?)",
+                [&*img, &*name],
+            )
+            .unwrap();
 
         if n == 0 {
             context.insert("fejl", &"Den indtastede bold eksisterer allerede 💩");

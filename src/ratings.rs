@@ -38,17 +38,23 @@ fn get_and_update_new_ratings() -> Vec<PlayerData> {
     update_new_ratings();
     let players = PLAYERS.lock().unwrap();
 
-    let mut ps: Vec<_> = players.values().map(PlayerRating::to_data).filter(|p| p.kampe > 0).collect();
-    ps.sort_by(|a, b| if b.rating.score < a.rating.score {
-        Less
-    } else {
-        Greater
+    let mut ps: Vec<_> = players
+        .values()
+        .map(PlayerRating::to_data)
+        .filter(|p| p.kampe > 0)
+        .collect();
+    ps.sort_by(|a, b| {
+        if b.rating.score < a.rating.score {
+            Less
+        } else {
+            Greater
+        }
     });
     ps
 }
 
 #[get("/")]
-pub fn root<'a>() -> ResHtml {
+pub fn root() -> ResHtml {
     let mut context = create_context("root");
     context.insert("players", &get_and_update_new_ratings());
 
@@ -60,23 +66,24 @@ pub fn root<'a>() -> ResHtml {
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g ORDER BY dato DESC LIMIT 5
                      ")
             .unwrap();
-    let games: Vec<_> = stmt.query_map((), |row| {
-        Ok(PlayedGame {
-            home: row.get(0)?,
-            away: row.get(1)?,
-            home_score: row.get(2)?,
-            away_score: row.get(3)?,
-            ball: row.get(5)?,
-            ball_name: row.get(6)?,
-            dato: row.get(7)?,
+    let games: Vec<_> = stmt
+        .query_map((), |row| {
+            Ok(PlayedGame {
+                home: row.get(0)?,
+                away: row.get(1)?,
+                home_score: row.get(2)?,
+                away_score: row.get(3)?,
+                ball: row.get(5)?,
+                ball_name: row.get(6)?,
+                dato: row.get(7)?,
+            })
         })
-    })
-    .unwrap()
-    .map(Result::unwrap)
-    .collect();
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
 
     context.insert("games", &games);
-    
+
     respond_page("root", context)
 }
 
@@ -89,7 +96,7 @@ struct Homeawaystats {
 }
 
 #[get("/ratings")]
-pub fn ratings<'a>() -> ResHtml {
+pub fn ratings() -> ResHtml {
     let mut context = create_context("rating");
     context.insert("players", &get_and_update_new_ratings());
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
@@ -103,18 +110,19 @@ pub fn ratings<'a>() -> ResHtml {
         where dato > date('now', 'start of month')
         ").unwrap();
 
-    let homeawaystats: Vec<_> = stmt.query_map((), |row| {
-        Ok(Homeawaystats {
-            homewins: row.get(0)?,
-            awaywins: row.get(1)?,
-            homegoals: row.get(2)?,
-            awaygoals: row.get(3)?,
+    let homeawaystats: Vec<_> = stmt
+        .query_map((), |row| {
+            Ok(Homeawaystats {
+                homewins: row.get(0)?,
+                awaywins: row.get(1)?,
+                homegoals: row.get(2)?,
+                awaygoals: row.get(3)?,
+            })
         })
-    })
-    .unwrap()
-    .map(Result::unwrap)
-    .collect();
-    println!("Stats: {:?}",homeawaystats);
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    println!("Stats: {:?}", homeawaystats);
 
     context.insert("homeawaystats", &homeawaystats);
 

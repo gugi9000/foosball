@@ -3,11 +3,11 @@ use rocket::get;
 use crate::*;
 
 #[get("/ratingsdev")]
-pub fn ratingsdev<'a>() -> ResHtml {
+pub fn ratingsdev() -> ResHtml {
     let mut context = create_context("analysis");
     context.insert("ace_egg_modifier", &CONFIG.ace_egg_modifier);
     context.insert("streak_modifier", &CONFIG.streak_modifier);
-   
+
     respond_page("ratingsdev", context)
 }
 
@@ -29,8 +29,14 @@ pub fn developmenttsv() -> String {
         names.push((id, player.name.clone()));
 
         for &(ref date, rating) in &player.score_history {
-            let date = format!("{}{}{}T{}", &date[0..4], &date[5..7], &date[8..10], &date[11..16]);
-            let ratings_for_date = ratings_history.entry(date).or_insert_with(HashMap::new);
+            let date = format!(
+                "{}{}{}T{}",
+                &date[0..4],
+                &date[5..7],
+                &date[8..10],
+                &date[11..16]
+            );
+            let ratings_for_date = ratings_history.entry(date).or_default();
             ratings_for_date.insert(id, rating);
         }
     }
@@ -40,9 +46,9 @@ pub fn developmenttsv() -> String {
 
     for (date, player_ratings) in ratings_history.into_iter() {
         let mut line = date;
-        for &(ref id, _) in &names {
+        for (id, _) in &names {
             line.push('\t');
-            let rating = if let Some(rating) = player_ratings.get(id).map(|&f| f) {
+            let rating = if let Some(rating) = player_ratings.get(id).copied() {
                 cache.insert(id, rating);
                 rating
             } else {
@@ -53,10 +59,10 @@ pub fn developmenttsv() -> String {
         data.push_str(&line);
         data.push('\n');
     }
-    
+
     if data.len() < 10 {
-        return "date\tNoone\n20190101T00:00\t0.0".to_owned();
+        "date\tNoone\n20190101T00:00\t0.0".to_owned()
     } else {
-        return data;
+        data
     }
 }

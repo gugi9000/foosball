@@ -1,17 +1,24 @@
-use rocket::{get, post, FromForm};
+use rocket::{FromForm, get, post};
 
 use crate::*;
 
 #[get("/players")]
-pub fn players<'a>() -> ResHtml {
+pub fn players() -> ResHtml {
     let conn = lock_database();
-    let mut stmt = conn.prepare("SELECT id, name from players ORDER BY name ASC").unwrap();
+    let mut stmt = conn
+        .prepare("SELECT id, name from players ORDER BY name ASC")
+        .unwrap();
 
     let mut players = Vec::new();
 
-    for p in stmt.query_map((), |row| Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))).unwrap() {
+    for p in stmt
+        .query_map((), |row| {
+            Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))
+        })
+        .unwrap()
+    {
         let (id, name) = p.unwrap();
-        players.push(Named{id: id, name: name});
+        players.push(Named { id, name });
     }
 
     let mut context = create_context("players");
@@ -21,18 +28,21 @@ pub fn players<'a>() -> ResHtml {
 }
 
 #[get("/player/<name>")]
-pub fn player<'a>(name: String) -> ResHtml {
+pub fn player(name: String) -> ResHtml {
     let conn = lock_database();
-    let mut stmt =
-        conn.prepare("SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
+    let mut stmt = conn
+        .prepare(
+            "SELECT (SELECT name FROM players p WHERE p.id = g.home_id) AS home, \
                       (SELECT name FROM players p WHERE p.id = g.away_id) AS away, home_score, \
                       away_score, ball_id, (SELECT img FROM balls b WHERE ball_id = b.id), \
                       (SELECT name FROM balls b WHERE ball_id = b.id), dato FROM games g \
                       where (home = ?1) or (away = ?1) \
                       AND dato > date('now', 'start of month') \
-                      ORDER BY ID DESC")
-            .unwrap();
-    let games: Vec<_> = stmt.query_map(&[&name], |row| {
+                      ORDER BY ID DESC",
+        )
+        .unwrap();
+    let games: Vec<_> = stmt
+        .query_map([&*name], |row| {
             Ok(PlayedGame {
                 home: row.get(0)?,
                 away: row.get(1)?,
@@ -55,7 +65,7 @@ pub fn player<'a>(name: String) -> ResHtml {
 }
 
 #[get("/newplayer")]
-pub fn newplayer<'a>() -> ResHtml {
+pub fn newplayer() -> ResHtml {
     respond_page("newplayer", create_context("players"))
 }
 
@@ -64,12 +74,12 @@ pub struct NewPlayerQuery {
     name: String,
     secret: String,
     #[allow(dead_code)]
-    submit: IgnoreField
+    submit: IgnoreField,
 }
 
 #[post("/newplayer/submit", data = "<f>")]
 pub fn submit_newplayer(f: Form<NewPlayerQuery>) -> Resp<RawHtml<String>> {
-    let NewPlayerQuery{name, secret, ..} = f.into_inner();
+    let NewPlayerQuery { name, secret, .. } = f.into_inner();
 
     let mut context = create_context("players");
     if secret != CONFIG.secret {
@@ -77,7 +87,9 @@ pub fn submit_newplayer(f: Form<NewPlayerQuery>) -> Resp<RawHtml<String>> {
     } else if name.is_empty() {
         context.insert("fejl", &"Den indtastede spiller er ikke lovlig 😜");
     } else {
-        let n = lock_database().execute("INSERT INTO players (name) VALUES (?)", &[&name]).unwrap();
+        let n = lock_database()
+            .execute("INSERT INTO players (name) VALUES (?)", [&*name])
+            .unwrap();
 
         if n == 0 {
             context.insert("fejl", &"Den indtastede spiller eksisterer allerede 💩");
