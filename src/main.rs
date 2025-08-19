@@ -216,18 +216,27 @@ fn get_games() -> Vec<Game> {
         .query_map([*last_date], |row| {
             let home_score = row.get::<_, i32>(2)?;
             let away_score = row.get::<_, i32>(3)?;
-            *last_date = row.get(4)?;
             Ok(Game {
                 home: row.get(0)?,
                 away: row.get(1)?,
-                dato: last_date.clone(),
+                dato: row.get(4)?,
                 ace: home_score == 0 || away_score == 0,
                 home_win: home_score > away_score,
             })
         })
         .unwrap()
         .map(Result::unwrap);
-    gs.collect()
+    let gs: Vec<_> = gs.collect();
+    if let Some(g) = gs.last() {
+        let new_date = g.dato;
+        if new_date.month() != last_date.month() {
+            drop(last_date);
+            reset_ratings();
+            return get_games()
+        }
+        *last_date = new_date;
+    }
+    gs
 }
 
 #[derive(Debug, Serialize)]
@@ -330,18 +339,29 @@ impl PlayerRating {
             (_, true) => self.streak = 1,
         }
     }
-    fn duel(&mut self, time: NaiveDateTime, o: Rating, won: bool) {
+    fn duel(&mut self, opponent: &mut Self, time: NaiveDateTime, won: bool, ace: bool) {
         let a = take(&mut self.rating);
-
-        let (a, _) = RATER.duel(a, o, if won { Win } else { Loss });
+        let b = take(&mut opponent.rating);
+        let (a, b) = RATER.duel(a, b, if won { Win } else { Loss });
         self.rating = a;
+        opponent.rating = b;
 
+        self.duel_epilogue(time, won, ace);
+        opponent.duel_epilogue(time, !won, ace);
+    }
+    fn duel_epilogue(&mut self, time: NaiveDateTime, won: bool, ace: bool) {
         self.kampe += 1;
         self.mod_streak(won);
         if won {
             self.vundne += 1;
+            if ace {
+                self.aces += 1;
+            }
         } else {
             self.tabte += 1;
+            if ace {
+                self.eggs += 1;
+            }
         }
         let rat = AggregatedRating::from_player(self);
         self.score_history.push((time, rat.score));

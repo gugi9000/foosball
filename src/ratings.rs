@@ -3,34 +3,15 @@ use rocket::get;
 use crate::*;
 
 pub fn update_new_ratings() {
+    let gs = get_games();
     let mut players = PLAYERS.lock().unwrap();
 
-    for g in get_games() {
-        let away_rating = players[&g.away].rating.clone();
-        let home_rating = players[&g.home].rating.clone();
+    for Game { home, away, dato, ace, home_win } in gs {
+        let [home_player, away_player] = players.get_disjoint_mut([&home, &away]);
+        let home_player = home_player.unwrap();
+        let away_player = away_player.unwrap();
 
-        {
-            let home_player = players.get_mut(&g.home).unwrap();
-            home_player.duel(g.dato.clone(), away_rating, g.home_win);
-            if g.ace {
-                if g.home_win {
-                    home_player.aces += 1;
-                } else {
-                    home_player.eggs += 1;
-                }
-            }
-        }
-        {
-            let away_player = players.get_mut(&g.away).unwrap();
-            away_player.duel(g.dato, home_rating, !g.home_win);
-            if g.ace {
-                if g.home_win {
-                    away_player.eggs += 1;
-                } else {
-                    away_player.aces += 1;
-                }
-            }
-        }
+        home_player.duel(away_player, dato.clone(), home_win, ace);
     }
 }
 

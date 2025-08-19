@@ -132,7 +132,6 @@ pub fn submit_newball(f: Form<NewBallQuery>) -> Resp<RawHtml<String>> {
         if n == 0 {
             context.insert("fejl", "Den indtastede bold eksisterer allerede 💩");
         } else {
-            reset_ratings();
             return Resp::red(Redirect::to("/"));
         }
     }

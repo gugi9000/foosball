@@ -94,6 +94,7 @@ pub fn submit_newplayer(f: Form<NewPlayerQuery>) -> Resp<RawHtml<String>> {
         if n == 0 {
             context.insert("fejl", "Den indtastede spiller eksisterer allerede 💩");
         } else {
+            // TODO: remove the need for this
             reset_ratings();
             return Resp::red(Redirect::to("/"));
         }
