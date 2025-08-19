@@ -125,7 +125,7 @@ pub fn submit_newball(f: Form<NewBallQuery>) -> Resp<RawHtml<String>> {
         let n = lock_database()
             .execute(
                 "INSERT INTO balls (name, img) VALUES (?, ?)",
-                [&*img, &*name],
+                [&*name, &*img],
             )
             .unwrap();
 
