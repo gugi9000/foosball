@@ -82,7 +82,7 @@ pub fn submit_newgame(f: Form<NewGame>) -> Resp<RawHtml<String>> {
                             ball_id) VALUES (?, ?, ?, ?, datetime('now'), ?)",
         [f.home, f.away, f.home_score, f.away_score, f.ball],
     );
-    println!("{:?}", res);
+    println!("{res:?}");
 
     Resp::red(Redirect::to("/"))
 }

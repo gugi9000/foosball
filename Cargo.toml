@@ -8,7 +8,8 @@ edition = "2024"
 [dependencies]
 rocket = "0.5"
 bbt = {version = "0.2.0", features = ["serde"]}
-rusqlite = "0.37.0"
+rusqlite = { version = "0.37.0", features = ["chrono"] }
+chrono = {version = "0.4", default-features = false, features = ["now"]}
 lazy_static = "1.2.0"
 tera = "1.20"
 toml = "0.9"

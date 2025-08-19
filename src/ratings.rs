@@ -122,7 +122,7 @@ pub fn ratings() -> ResHtml {
         .unwrap()
         .map(Result::unwrap)
         .collect();
-    println!("Stats: {:?}", homeawaystats);
+    println!("Stats: {homeawaystats:?}");
 
     context.insert("homeawaystats", &homeawaystats);
 

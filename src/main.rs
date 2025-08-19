@@ -1,5 +1,6 @@
 use bbt::{Rater, Rating};
-use lazy_static::*;
+use chrono::{Datelike, Local, NaiveDateTime, NaiveTime};
+use lazy_static::lazy_static;
 use rocket::{
     catchers,
     form::{self, Form, FromFormField, ValueField},
@@ -31,10 +32,17 @@ mod pvp;
 mod ratings;
 mod ratingsdev;
 mod statics;
+pub mod ext;
 
 const BETA: f64 = 5000.0;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const INITIAL_DATE_CAP: &str = "now','start of month";
+
+/// Returns the start of the current month
+pub fn initial_date_cap() -> NaiveDateTime {
+    let now = Local::now().naive_local();
+    let start_of_month = now.date().with_day0(0).unwrap();
+    NaiveDateTime::new(start_of_month, NaiveTime::MIN)
+}
 
 pub type Res<T> = Result<T, Status>;
 pub type ResHtml = Res<RawHtml<String>>;
@@ -95,7 +103,7 @@ fn egg_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Val
 fn da_genitive_filter(value: &Value, _args: &HashMap<String, Value>) -> tera::Result<Value> {
     let mut name = try_get_value!("genitiv", "value", String, value);
     match name.chars().last() {
-        Some('s') | Some('x') | Some('z') => name.push('\''),
+        Some('s' | 'x' | 'z') => name.push('\''),
         _ => name.push('s'),
     }
     Ok(Value::String(name))
@@ -134,7 +142,7 @@ lazy_static! {
     };
     static ref RATER: Rater = Rater::new(BETA / 6.0);
     pub static ref PLAYERS: Mutex<HashMap<i32, PlayerRating>> = Mutex::new(gen_players());
-    pub static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
+    pub static ref LAST_DATE: Mutex<NaiveDateTime> = Mutex::new(initial_date_cap());
     // Has to be a `Mutex` because `Connection` isn't `Sync`
     static ref DB_CONNECTION: Mutex<Connection> = Mutex::new({
         let exists = fs::exists(&*CONFIG.database).unwrap();
@@ -147,7 +155,7 @@ lazy_static! {
     });
     static ref BASE_CONTEXT: Context = {
         let mut c = Context::new();
-        c.insert("version", &VERSION);
+        c.insert("version", VERSION);
         c.insert("league", &CONFIG.title);
         c
     };
@@ -161,7 +169,7 @@ pub fn tera_render(template: &str, c: Context) -> Res<RawHtml<String>> {
 }
 
 pub fn respond_page(page: &str, c: Context) -> Res<RawHtml<String>> {
-    tera_render(&format!("pages/{}.html", page), c)
+    tera_render(&format!("pages/{page}.html"), c)
 }
 
 pub fn lock_database() -> MutexGuard<'static, Connection> {
@@ -186,13 +194,13 @@ fn gen_players() -> HashMap<i32, PlayerRating> {
 
 fn reset_ratings() {
     *PLAYERS.lock().unwrap() = gen_players();
-    *LAST_DATE.lock().unwrap() = INITIAL_DATE_CAP.to_owned();
+    *LAST_DATE.lock().unwrap() = initial_date_cap();
 }
 
 pub struct Game {
     home: i32,
     away: i32,
-    dato: DateTime,
+    dato: NaiveDateTime,
     ace: bool,
     home_win: bool,
 }
@@ -201,14 +209,13 @@ fn get_games() -> Vec<Game> {
     let conn = lock_database();
     let mut last_date = LAST_DATE.lock().unwrap();
     let mut stmt =
-        conn.prepare(&format!("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime('{}') order by dato asc", *last_date))
+        conn.prepare("SELECT home_id, away_id, home_score, away_score, dato from games WHERE dato > datetime(?) order by dato asc")
             .unwrap();
 
     let gs = stmt
-        .query_map((), |row| {
+        .query_map([*last_date], |row| {
             let home_score = row.get::<_, i32>(2)?;
             let away_score = row.get::<_, i32>(3)?;
-            // FIXME:
             *last_date = row.get(4)?;
             Ok(Game {
                 home: row.get(0)?,
@@ -247,9 +254,10 @@ struct Ball {
     img: Box<str>,
 }
 
+#[must_use]
 pub fn create_context(current_page: &str) -> Context {
     let mut c = BASE_CONTEXT.clone();
-    c.insert("cur", &current_page);
+    c.insert("cur", current_page);
     c
 }
 
@@ -272,12 +280,10 @@ impl AggregatedRating {
     }
 }
 
-type DateTime = String;
-
 #[derive(Debug, Clone)]
 pub struct PlayerRating {
     pub name: Box<str>,
-    pub score_history: Vec<(DateTime, f64)>,
+    pub score_history: Vec<(NaiveDateTime, f64)>,
     pub streak: i16,
     pub rating: Rating,
     pub kampe: u32,
@@ -302,9 +308,9 @@ pub struct PlayerData {
 use bbt::Outcome::{Loss, Win};
 
 impl PlayerRating {
-    fn new<S: ToString>(name: S) -> Self {
+    fn new<S: Into<Box<str>>>(name: S) -> Self {
         PlayerRating {
-            name: name.to_string().into_boxed_str(),
+            name: name.into(),
             rating: Rating::new(BETA, BETA / 3.0),
             score_history: Vec::new(),
             kampe: 0,
@@ -324,7 +330,7 @@ impl PlayerRating {
             (_, true) => self.streak = 1,
         }
     }
-    fn duel(&mut self, time: DateTime, o: Rating, won: bool) {
+    fn duel(&mut self, time: NaiveDateTime, o: Rating, won: bool) {
         let a = take(&mut self.rating);
 
         let (a, _) = RATER.duel(a, o, if won { Win } else { Loss });

@@ -65,7 +65,7 @@ pub fn pvp(p1: i32, p2: i32) -> ResHtml {
                 }
                 home.0 += game.home_score;
                 if home_win {
-                    home.1 += 1
+                    home.1 += 1;
                 }
             }
             {
@@ -79,7 +79,7 @@ pub fn pvp(p1: i32, p2: i32) -> ResHtml {
                 }
                 away.0 += game.away_score;
                 if !home_win {
-                    away.1 += 1
+                    away.1 += 1;
                 }
             }
 
