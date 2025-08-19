@@ -23,11 +23,11 @@ pub fn developmenttsv() -> RawTextTsv<Vec<u8>> {
 
     let mut out_text = b"date".to_vec(); 
     let w = &mut out_text;
-    let mut names = Vec::new();
+    let mut ids = Vec::new();
 
     for (&id, player) in PLAYERS.lock().unwrap().iter().filter(|&(_, p)| p.kampe > 0) {
         write!(w, "\t{}", player.name).unwrap();
-        names.push((id, player.name.clone()));
+        ids.push(id);
 
         for &(date, rating) in &player.score_history {
             let ratings_for_date = ratings_history.entry(date).or_default();
@@ -40,7 +40,7 @@ pub fn developmenttsv() -> RawTextTsv<Vec<u8>> {
 
     for (date, player_ratings) in ratings_history {
         write!(w, "{}", date.format("%Y%m%dT%H:%M")).unwrap();
-        for &(id, _) in &names {
+        for &id in &ids {
             write!(w, "\t").unwrap();
             let rating = if let Some(rating) = player_ratings.get(&id).copied() {
                 cache.insert(id, rating);

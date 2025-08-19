@@ -11,7 +11,7 @@ pub fn update_new_ratings() {
         let home_player = home_player.unwrap();
         let away_player = away_player.unwrap();
 
-        home_player.duel(away_player, dato.clone(), home_win, ace);
+        home_player.duel(away_player, dato, home_win, ace);
     }
 }
 
