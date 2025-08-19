@@ -24,13 +24,7 @@ fn get_and_update_new_ratings() -> Vec<PlayerData> {
         .map(PlayerRating::to_data)
         .filter(|p| p.kampe > 0)
         .collect();
-    ps.sort_by(|a, b| {
-        if b.rating.score < a.rating.score {
-            Less
-        } else {
-            Greater
-        }
-    });
+    ps.sort_unstable_by(|a, b| a.rating.score.total_cmp(&b.rating.score).reverse());
     ps
 }
 

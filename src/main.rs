@@ -14,7 +14,6 @@ use rocket::{
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::{
-    cmp::Ordering::{Greater, Less},
     collections::HashMap,
     fs,
     io::Read,
