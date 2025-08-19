@@ -38,7 +38,7 @@ pub fn pvp(p1: i32, p2: i32) -> ResHtml {
                       ORDER BY dato DESC")
             .unwrap();
 
-    let mut map = ((0, 0, "".to_owned()), (0, 0, "".to_owned()));
+    let mut map: ((_, _, Box<str>), (_, _, Box<str>)) = ((0, 0, "".into()), (0, 0, "".into()));
 
     let pvp: Vec<_> = stmt
         .query_map([p1, p2], |row| {

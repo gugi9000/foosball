@@ -4,10 +4,10 @@ use serde_derive::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct Ballstats {
-    name: String,
+    name: Box<str>,
     games: i32,
     goals: i32,
-    img: String,
+    img: Box<str>,
 }
 
 #[get("/balls")]
@@ -36,7 +36,7 @@ pub fn balls() -> ResHtml {
 }
 
 #[get("/ball/<ball>")]
-pub fn ball(ball: String) -> ResHtml {
+pub fn ball(ball: &str) -> ResHtml {
     let conn = lock_database();
     let mut stmt =
         conn.prepare("SELECT \
@@ -50,7 +50,7 @@ pub fn ball(ball: String) -> ResHtml {
             ORDER BY ID DESC")
             .unwrap();
     let games: Vec<_> = stmt
-        .query_map([&*ball], |row| {
+        .query_map([ball], |row| {
             Ok(PlayedGame {
                 home: row.get(0)?,
                 away: row.get(1)?,
@@ -85,8 +85,8 @@ pub fn newball() -> ResHtml {
         .query_map((), |row| {
             Ok((
                 row.get::<_, i32>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
+                row.get::<_, Box<str>>(1)?,
+                row.get::<_, Box<str>>(2)?,
             ))
         })
         .unwrap()
@@ -102,10 +102,10 @@ pub fn newball() -> ResHtml {
 }
 
 #[derive(FromForm)]
-pub struct NewBallQuery {
-    name: String,
-    img: String,
-    secret: String,
+pub struct NewBallQuery<'a> {
+    name: &'a str,
+    img: &'a str,
+    secret: &'a str,
     #[allow(dead_code)]
     submit: IgnoreField,
 }
@@ -117,20 +117,20 @@ pub fn submit_newball(f: Form<NewBallQuery>) -> Resp<RawHtml<String>> {
     } = f.into_inner();
 
     let mut context = create_context("balls");
-    if secret != CONFIG.secret {
-        context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
+    if secret != &*CONFIG.secret {
+        context.insert("fejl", "Det indtastede kodeord er forkert 💩");
     } else if name.is_empty() {
-        context.insert("fejl", &"Den indtastede bold er ikke lovlig 😜");
+        context.insert("fejl", "Den indtastede bold er ikke lovlig 😜");
     } else {
         let n = lock_database()
             .execute(
                 "INSERT INTO balls (name, img) VALUES (?, ?)",
-                [&*name, &*img],
+                [name, img],
             )
             .unwrap();
 
         if n == 0 {
-            context.insert("fejl", &"Den indtastede bold eksisterer allerede 💩");
+            context.insert("fejl", "Den indtastede bold eksisterer allerede 💩");
         } else {
             reset_ratings();
             return Resp::red(Redirect::to("/"));

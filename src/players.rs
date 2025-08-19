@@ -13,7 +13,7 @@ pub fn players() -> ResHtml {
 
     for p in stmt
         .query_map((), |row| {
-            Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))
+            Ok((row.get::<_, i32>(0)?, row.get::<_, Box<str>>(1)?))
         })
         .unwrap()
     {
@@ -28,7 +28,7 @@ pub fn players() -> ResHtml {
 }
 
 #[get("/player/<name>")]
-pub fn player(name: String) -> ResHtml {
+pub fn player(name: &str) -> ResHtml {
     let conn = lock_database();
     let mut stmt = conn
         .prepare(
@@ -42,7 +42,7 @@ pub fn player(name: String) -> ResHtml {
         )
         .unwrap();
     let games: Vec<_> = stmt
-        .query_map([&*name], |row| {
+        .query_map([name], |row| {
             Ok(PlayedGame {
                 home: row.get(0)?,
                 away: row.get(1)?,
@@ -70,9 +70,9 @@ pub fn newplayer() -> ResHtml {
 }
 
 #[derive(FromForm)]
-pub struct NewPlayerQuery {
-    name: String,
-    secret: String,
+pub struct NewPlayerQuery<'a> {
+    name: &'a str,
+    secret: &'a str,
     #[allow(dead_code)]
     submit: IgnoreField,
 }
@@ -82,17 +82,17 @@ pub fn submit_newplayer(f: Form<NewPlayerQuery>) -> Resp<RawHtml<String>> {
     let NewPlayerQuery { name, secret, .. } = f.into_inner();
 
     let mut context = create_context("players");
-    if secret != CONFIG.secret {
-        context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
+    if secret != &*CONFIG.secret {
+        context.insert("fejl", "Det indtastede kodeord er forkert 💩");
     } else if name.is_empty() {
-        context.insert("fejl", &"Den indtastede spiller er ikke lovlig 😜");
+        context.insert("fejl", "Den indtastede spiller er ikke lovlig 😜");
     } else {
         let n = lock_database()
-            .execute("INSERT INTO players (name) VALUES (?)", [&*name])
+            .execute("INSERT INTO players (name) VALUES (?)", [name])
             .unwrap();
 
         if n == 0 {
-            context.insert("fejl", &"Den indtastede spiller eksisterer allerede 💩");
+            context.insert("fejl", "Den indtastede spiller eksisterer allerede 💩");
         } else {
             reset_ratings();
             return Resp::red(Redirect::to("/"));

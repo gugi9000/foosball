@@ -44,13 +44,13 @@ pub fn newgame_con() -> Context {
 }
 
 #[derive(FromForm)]
-pub struct NewGame {
+pub struct NewGame<'a> {
     home: i32,
     away: i32,
     home_score: i32,
     away_score: i32,
     ball: i32,
-    secret: String,
+    secret: &'a str,
     #[allow(dead_code)]
     submit: IgnoreField,
 }
@@ -59,9 +59,9 @@ pub struct NewGame {
 pub fn submit_newgame(f: Form<NewGame>) -> Resp<RawHtml<String>> {
     let f = f.into_inner();
 
-    if f.secret != CONFIG.secret {
+    if f.secret != &*CONFIG.secret {
         let mut context = newgame_con();
-        context.insert("fejl", &"Det indtastede kodeord er forkert 💩");
+        context.insert("fejl", "Det indtastede kodeord er forkert 💩");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 
@@ -73,7 +73,7 @@ pub fn submit_newgame(f: Form<NewGame>) -> Resp<RawHtml<String>> {
     {
         let mut context = newgame_con();
 
-        context.insert("fejl", &"Den indtastede kamp er ikke lovlig 😜");
+        context.insert("fejl", "Den indtastede kamp er ikke lovlig 😜");
         return Resp::cont(respond_page("newgame_fejl", context));
     }
 

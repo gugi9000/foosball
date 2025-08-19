@@ -76,9 +76,9 @@ impl<'r, 'o: 'r, T: Responder<'r, 'o>> Responder<'r, 'o> for Resp<T> {
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
-    database: String,
-    title: String,
-    secret: String,
+    database: Box<str>,
+    title: Box<str>,
+    secret: Box<str>,
     ace_egg_modifier: f64,
     streak_modifier: f64,
 }
@@ -136,9 +136,9 @@ lazy_static! {
     pub static ref PLAYERS: Mutex<HashMap<i32, PlayerRating>> = Mutex::new(gen_players());
     pub static ref LAST_DATE: Mutex<String> = Mutex::new(INITIAL_DATE_CAP.to_owned());
     // Has to be a `Mutex` because `Connection` isn't `Sync`
-    pub static ref DB_CONNECTION: Mutex<Connection> = Mutex::new({
-        let exists = fs::exists(&CONFIG.database).unwrap();
-        let conn = Connection::open(&CONFIG.database).unwrap();
+    static ref DB_CONNECTION: Mutex<Connection> = Mutex::new({
+        let exists = fs::exists(&*CONFIG.database).unwrap();
+        let conn = Connection::open(&*CONFIG.database).unwrap();
         if !exists {
             println!("Database didn't exist... creating one");
             conn.execute_batch(include_str!("ratings.schema")).unwrap();
@@ -153,14 +153,14 @@ lazy_static! {
     };
 }
 
-pub fn tera_render(template: &'_ str, c: Context) -> Res<RawHtml<String>> {
+pub fn tera_render(template: &str, c: Context) -> Res<RawHtml<String>> {
     match TERA.render(template, &c) {
         Ok(s) => Ok(RawHtml(s)),
         Err(_) => Err(Status::InternalServerError),
     }
 }
 
-pub fn respond_page(page: &'_ str, c: Context) -> Res<RawHtml<String>> {
+pub fn respond_page(page: &str, c: Context) -> Res<RawHtml<String>> {
     tera_render(&format!("pages/{}.html", page), c)
 }
 
@@ -225,26 +225,26 @@ fn get_games() -> Vec<Game> {
 
 #[derive(Debug, Serialize)]
 struct PlayedGame {
-    home: String,
-    away: String,
+    home: Box<str>,
+    away: Box<str>,
     home_score: i32,
     away_score: i32,
-    ball: String,
-    ball_name: String,
-    dato: String,
+    ball: Box<str>,
+    ball_name: Box<str>,
+    dato: Box<str>,
 }
 
 #[derive(Debug, Serialize)]
 struct Named {
     id: i32,
-    name: String,
+    name: Box<str>,
 }
 
 #[derive(Debug, Serialize)]
 struct Ball {
     id: i32,
-    name: String,
-    img: String,
+    name: Box<str>,
+    img: Box<str>,
 }
 
 pub fn create_context(current_page: &str) -> Context {
@@ -276,7 +276,7 @@ type DateTime = String;
 
 #[derive(Debug, Clone)]
 pub struct PlayerRating {
-    pub name: String,
+    pub name: Box<str>,
     pub score_history: Vec<(DateTime, f64)>,
     pub streak: i16,
     pub rating: Rating,
@@ -289,7 +289,7 @@ pub struct PlayerRating {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PlayerData {
-    pub name: String,
+    pub name: Box<str>,
     pub streak: i16,
     pub rating: AggregatedRating,
     pub kampe: u32,
@@ -304,7 +304,7 @@ use bbt::Outcome::{Loss, Win};
 impl PlayerRating {
     fn new<S: ToString>(name: S) -> Self {
         PlayerRating {
-            name: name.to_string(),
+            name: name.to_string().into_boxed_str(),
             rating: Rating::new(BETA, BETA / 3.0),
             score_history: Vec::new(),
             kampe: 0,
